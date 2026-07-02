@@ -28,6 +28,7 @@
     * pageid - Page identifier for shared filter state.
     * isselect / isdate / istext / isnumber - Type flags.
     * options - For select: list of {value, label, selected}.
+    * palettename - Active palette name; added as a wb-palette-NAME scope class.
 
     Example context (json):
     {
@@ -41,10 +42,11 @@
         "isselect": false,
         "istext": false,
         "isnumber": false,
-        "options": []
+        "options": [],
+        "palettename": "standard"
     }
 }}
-<div class="local-dashboard-filter form-group" data-region="chart-filter"
+<div class="local-dashboard-filter form-group wb-palette-{{palettename}}" data-region="chart-filter"
      data-filter-key="{{key}}" data-filter-type="{{type}}" data-pageid="{{pageid}}">
     <label for="{{id}}" class="local-dashboard-filter-label">{{label}}</label>
     {{#isselect}}

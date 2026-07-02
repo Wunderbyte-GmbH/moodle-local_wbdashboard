@@ -120,4 +120,53 @@ final class external_get_chart_data_test extends \advanced_testcase {
         $this->expectException(\moodle_exception::class);
         get_chart_data::execute('nosuchsource', 'bar', [], [], [], '');
     }
+
+    /**
+     * Build a one-series bar chart and return its first dataset colour.
+     *
+     * @param array $colors Colour override passed to the web service.
+     * @return string
+     */
+    private function first_bar_color(array $colors): string {
+        /** @var generator $rbgenerator */
+        $rbgenerator = $this->getDataGenerator()->get_plugin_generator('core_reportbuilder');
+        $report = $rbgenerator->create_report(['name' => 'Colours', 'source' => users::class, 'default' => 0]);
+        $rbgenerator->create_column(['reportid' => $report->get('id'), 'uniqueidentifier' => 'user:fullname']);
+
+        $result = get_chart_data::execute(
+            'reportbuilder',
+            'bar',
+            $this->pairs([
+                'report' => $report->get('id'),
+                'categoryfield' => 'user:fullname',
+                'aggregation' => 'count',
+            ]),
+            [],
+            $colors,
+            ''
+        );
+        $config = json_decode($result['payload'], true);
+        return $config['data']['datasets'][0]['backgroundColor'];
+    }
+
+    public function test_empty_colors_use_active_palette(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $this->getDataGenerator()->create_user();
+
+        // No colours supplied → the active (standard) palette's first colour.
+        $this->assertSame(\wbdashboardpalette_standard\palette::DEFAULTS[0], $this->first_bar_color([]));
+
+        // Tuning the active palette changes it.
+        set_config('color1', '#123456', 'wbdashboardpalette_standard');
+        $this->assertSame('#123456', $this->first_bar_color([]));
+    }
+
+    public function test_explicit_colors_override_palette(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $this->getDataGenerator()->create_user();
+
+        $this->assertSame('#abcdef', $this->first_bar_color(['#abcdef']));
+    }
 }

@@ -24,6 +24,7 @@ use local_wb_dashboard\local\definition\filter_definition;
 use local_wb_dashboard\local\digits\digits_reducer;
 use local_wb_dashboard\local\filter\filter_factory;
 use local_wb_dashboard\local\filter\page_filter_state;
+use local_wb_dashboard\local\palette\palette_manager;
 use local_wb_dashboard\local\source\source_registry;
 
 /**
@@ -71,6 +72,7 @@ class shortcodes {
             'pageid' => $definition->pageid,
             'consumes' => json_encode($definition->consumesfilters),
             'wsargs' => json_encode($wsargs),
+            'palettename' => palette_manager::name(),
         ];
 
         return $OUTPUT->render_from_template('local_wb_dashboard/chart', $context);
@@ -117,6 +119,7 @@ class shortcodes {
         }
 
         $context['pageid'] = $definition->pageid;
+        $context['palettename'] = palette_manager::name();
         $context['isselect'] = ($definition->type === 'select');
         $context['isdate'] = ($definition->type === 'date');
         $context['istext'] = ($definition->type === 'text');
@@ -161,6 +164,7 @@ class shortcodes {
             'pageid' => $definition->pageid,
             'consumes' => json_encode($definition->consumesfilters),
             'wsargs' => json_encode($definition->to_wsargs()),
+            'palettename' => palette_manager::name(),
         ];
 
         return $OUTPUT->render_from_template('local_wb_dashboard/digits', $context);

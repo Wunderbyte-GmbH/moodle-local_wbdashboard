@@ -14,19 +14,33 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace local_wb_dashboard\plugininfo;
+
 /**
- * Version details for local_wb_dashboard.
+ * Contract every dashboard palette subplugin (wbdashboardpalette_*) implements.
+ *
+ * A palette provides two independent things: a colour scheme (the chart colours
+ * that replace the builder's default) and, separately, its own free-form
+ * styles.css. Only the colour scheme is expressed here; the CSS is just the
+ * subplugin's auto-loaded stylesheet.
  *
  * @package    local_wb_dashboard
  * @copyright  2026 Wunderbyte GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+interface wbdashboardpalette_interface {
+    /**
+     * Human-readable name for the settings dropdown.
+     *
+     * @return string
+     */
+    public function get_display_name(): string;
 
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->component = 'local_wb_dashboard';
-$plugin->version   = 2026070202;
-$plugin->requires  = 2024100700; // Moodle 4.5.
-$plugin->supported = [405, 501];
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.3.0';
+    /**
+     * The ordered chart colour scheme (hex strings). Replaces the builder's
+     * default palette; the builder cycles it by modulo, so any length is fine.
+     *
+     * @return string[]
+     */
+    public function get_colors(): array;
+}

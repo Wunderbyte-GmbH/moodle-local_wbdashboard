@@ -1,0 +1,8 @@
+{
+    "subplugintypes": {
+        "wbdashboardpalette": "palette"
+    },
+    "plugintypes": {
+        "wbdashboardpalette": "local/wb_dashboard/palette"
+    }
+}

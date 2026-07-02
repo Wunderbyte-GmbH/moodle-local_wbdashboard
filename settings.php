@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version details for local_wb_dashboard.
+ * Admin settings for local_wb_dashboard.
  *
  * @package    local_wb_dashboard
  * @copyright  2026 Wunderbyte GmbH
@@ -24,9 +24,20 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_wb_dashboard';
-$plugin->version   = 2026070202;
-$plugin->requires  = 2024100700; // Moodle 4.5.
-$plugin->supported = [405, 501];
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.3.0';
+use local_wb_dashboard\local\palette\palette_manager;
+
+if ($hassiteconfig) {
+    $settings = new admin_settingpage('local_wb_dashboard', get_string('pluginname', 'local_wb_dashboard'));
+
+    // Choose the active palette from the installed palette subplugins. Each
+    // palette supplies the chart colour scheme and (optionally) its own CSS.
+    $settings->add(new admin_setting_configselect(
+        'local_wb_dashboard/activepalette',
+        get_string('settings:activepalette', 'local_wb_dashboard'),
+        get_string('settings:activepalette_desc', 'local_wb_dashboard'),
+        palette_manager::DEFAULT_PALETTE,
+        palette_manager::available()
+    ));
+
+    $ADMIN->add('localplugins', $settings);
+}

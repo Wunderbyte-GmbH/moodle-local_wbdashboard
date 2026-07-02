@@ -27,6 +27,7 @@
     * pageid - Page identifier for shared filter state.
     * consumes - JSON array of filter keys this chart reacts to.
     * wsargs - JSON object of web-service arguments (source, type, params, ...).
+    * palettename - Active palette name; added as a wb-palette-NAME scope class.
 
     Example context (json):
     {
@@ -36,10 +37,11 @@
         "height": 20,
         "pageid": "default",
         "consumes": "[]",
-        "wsargs": "{}"
+        "wsargs": "{}",
+        "palettename": "standard"
     }
 }}
-<div class="local-dashboard-chart" data-region="chart-wrapper">
+<div class="local-dashboard-chart wb-palette-{{palettename}}" data-region="chart-wrapper">
     <div class="local-dashboard-chart-container"
          style="position: relative; width: 100%; max-width: {{width}}rem; height: {{height}}rem; margin: 0 auto;">
         <div class="local-dashboard-chart-skeleton" aria-hidden="true"></div>

@@ -23,6 +23,7 @@ use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
 use local_wb_dashboard\local\chart\chart_director;
+use local_wb_dashboard\local\palette\palette_manager;
 use local_wb_dashboard\local\source\pipeline;
 
 /**
@@ -115,8 +116,12 @@ class get_chart_data extends external_api {
         // Fetch normalized data (source resolve + authz + filters), then build
         // the FULL chart config.
         $dto = pipeline::fetch($params['source'], $params['sourceparams'], $params['filtervalues']);
+
+        // Author-supplied colours (color1..) win; otherwise use the active palette's scheme.
+        $colors = !empty($params['colors']) ? $params['colors'] : palette_manager::colors();
+
         $config = (new chart_director())->build($params['type'], $dto, [
-            'colors' => $params['colors'],
+            'colors' => $colors,
             'title' => $params['title'],
             'centertext' => $params['centertext'],
         ]);

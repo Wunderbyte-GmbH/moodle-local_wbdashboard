@@ -31,6 +31,7 @@
     * pageid - Page identifier for shared filter state.
     * consumes - JSON array of filter keys this field reacts to.
     * wsargs - JSON object of web-service arguments (source, display, params, ...).
+    * palettename - Active palette name; added as a wb-palette-NAME scope class.
 
     Example context (json):
     {
@@ -40,10 +41,11 @@
         "label": "Active users",
         "pageid": "default",
         "consumes": "[]",
-        "wsargs": "{}"
+        "wsargs": "{}",
+        "palettename": "standard"
     }
 }}
-<div class="local-dashboard-digits" id="{{domid}}"
+<div class="local-dashboard-digits wb-palette-{{palettename}}" id="{{domid}}"
      data-region="digits-wrapper"
      data-pageid="{{pageid}}"
      data-consumes="{{consumes}}"

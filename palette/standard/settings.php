@@ -15,18 +15,23 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version details for local_wb_dashboard.
+ * Colour-picker settings for the bundled standard dashboard palette.
  *
- * @package    local_wb_dashboard
+ * @package    wbdashboardpalette_standard
  * @copyright  2026 Wunderbyte GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_wb_dashboard';
-$plugin->version   = 2026070202;
-$plugin->requires  = 2024100700; // Moodle 4.5.
-$plugin->supported = [405, 501];
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.3.0';
+if ($ADMIN->fulltree) {
+    foreach (\wbdashboardpalette_standard\palette::DEFAULTS as $i => $default) {
+        $n = $i + 1;
+        $settings->add(new admin_setting_configcolourpicker(
+            "wbdashboardpalette_standard/color{$n}",
+            get_string('color', 'wbdashboardpalette_standard', $n),
+            get_string('color_desc', 'wbdashboardpalette_standard', $n),
+            $default
+        ));
+    }
+}

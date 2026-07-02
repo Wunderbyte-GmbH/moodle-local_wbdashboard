@@ -15,18 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version details for local_wb_dashboard.
+ * Language strings for the bundled standard dashboard palette.
  *
- * @package    local_wb_dashboard
+ * @package    wbdashboardpalette_standard
  * @copyright  2026 Wunderbyte GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_wb_dashboard';
-$plugin->version   = 2026070202;
-$plugin->requires  = 2024100700; // Moodle 4.5.
-$plugin->supported = [405, 501];
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.3.0';
+$string['color'] = 'Colour {$a}';
+$string['color_desc'] = 'Chart colour {$a} in the palette. Colours are applied to chart series/slices in order and reused cyclically when there are more than eight.';
+$string['pluginname'] = 'Standard';
+$string['privacy:metadata'] = 'The standard dashboard palette does not store any personal data.';

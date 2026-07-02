@@ -32,7 +32,9 @@ use local_wb_dashboard\local\dto\chart_series;
  */
 abstract class chart_builder {
     /**
-     * Default accessible, colourblind-friendly categorical palette (Okabe-Ito).
+     * Defensive last-resort palette (Okabe-Ito). The real default now comes from
+     * the active palette subplugin (wbdashboardpalette_standard), supplied via set_colors();
+     * this constant only applies if no colours reach the builder at all.
      *
      * @var string[]
      */
