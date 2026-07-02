@@ -1,0 +1,31 @@
+/* Loading skeleton shown while a chart's data is fetched. */
+.local-dashboard-chart-skeleton {
+    position: absolute;
+    inset: 0;
+    border-radius: 0.5rem;
+    background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%);
+    background-size: 400% 100%;
+    animation: local-dashboard-chart-loading 1.4s ease infinite;
+}
+
+@keyframes local-dashboard-chart-loading {
+    0% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0 50%;
+    }
+}
+
+/* Page-level filter controls. */
+.local-dashboard-filter {
+    display: inline-block;
+    margin: 0 0.75rem 0.75rem 0;
+    vertical-align: top;
+}
+
+.local-dashboard-filter-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}

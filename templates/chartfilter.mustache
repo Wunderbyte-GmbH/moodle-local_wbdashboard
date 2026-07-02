@@ -1,0 +1,73 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_wb_dashboard/chartfilter
+
+    Renders a page-level filter control that publishes to the filter bus.
+
+    Context variables required for this template:
+    * id - Unique DOM id for the control.
+    * key - Logical filter key.
+    * type - Filter type (select|date|text|number).
+    * label - Visible label.
+    * value - Current value.
+    * pageid - Page identifier for shared filter state.
+    * isselect / isdate / istext / isnumber - Type flags.
+    * options - For select: list of {value, label, selected}.
+
+    Example context (json):
+    {
+        "id": "local-dashboard-filter-1",
+        "key": "period",
+        "type": "date",
+        "label": "Period",
+        "value": "",
+        "pageid": "default",
+        "isdate": true,
+        "isselect": false,
+        "istext": false,
+        "isnumber": false,
+        "options": []
+    }
+}}
+<div class="local-dashboard-filter form-group" data-region="chart-filter"
+     data-filter-key="{{key}}" data-filter-type="{{type}}" data-pageid="{{pageid}}">
+    <label for="{{id}}" class="local-dashboard-filter-label">{{label}}</label>
+    {{#isselect}}
+        <select id="{{id}}" class="custom-select" data-filter-control="1">
+            <option value="">{{#str}}choosedots{{/str}}</option>
+            {{#options}}
+                <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+            {{/options}}
+        </select>
+    {{/isselect}}
+    {{#isdate}}
+        <input type="date" id="{{id}}" class="form-control" value="{{value}}" data-filter-control="1">
+    {{/isdate}}
+    {{#istext}}
+        <input type="text" id="{{id}}" class="form-control" value="{{value}}" data-filter-control="1">
+    {{/istext}}
+    {{#isnumber}}
+        <input type="number" id="{{id}}" class="form-control" value="{{value}}" data-filter-control="1">
+    {{/isnumber}}
+</div>
+
+{{#js}}
+require(['local_wb_dashboard/filterbus'], function(filterbus) {
+    filterbus.registerControl({{#quote}}{{id}}{{/quote}});
+});
+{{/js}}

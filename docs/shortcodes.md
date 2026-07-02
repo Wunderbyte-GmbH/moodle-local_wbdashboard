@@ -1,0 +1,188 @@
+# local_wb_dashboard — shortcode reference
+
+Two shortcodes are provided. They require the third-party **`filter_shortcodes`**
+filter to be installed and enabled in the context where the content is shown.
+
+- **`[chart ...]`** — renders one chart. Data is loaded client-side from a web
+  service, so the tag only emits a canvas; the chart draws once the data arrives.
+- **`[chartfilter ...]`** — renders one page-level filter control. Every chart on
+  the same page (same `pageid`) that "consumes" the filter's key re-queries when the
+  filter changes.
+
+---
+
+## 1. `[chart]`
+
+### Common flags (all chart types)
+
+| Flag | Values | Default | Description |
+|------|--------|---------|-------------|
+| `type` | `doughnut`, `bar`, `horizontalbar`, `stackedbar`, `progress` | `bar` | The chart type (see §3). |
+| `source` | `reportbuilder` | — (required) | The data source (see §2). |
+| `title` | text | plugin name | Chart title, also used as the canvas `aria-label`. |
+| `width` | number (rem) | `32` | Max width of the chart container. |
+| `height` | number (rem) | `20` | Height of the chart container. Use a small value (≈`8`) for `progress`. |
+| `color1`, `color2`, … | `#rrggbb`, `#rgb`, or a CSS colour name | accessible palette | Colours applied in order (per slice for doughnut, per series/segment for bars). Any not supplied fall back to a colour-blind-safe palette. |
+| `consumes` | comma-separated filter keys | *(all)* | Which page filter keys this chart reacts to. Omit to react to every filter the source can map. |
+| `pageid` | alphanumeric | `default` | Groups the chart with the filters and other charts that share the same `pageid`. |
+| `centertext` | `1`/`0` | `1` | **Doughnut only.** `0` hides the centre value/label text. |
+
+Any flag **not** in the table above is passed to the source as a *source parameter*
+(see §2) — unknown parameters are dropped server-side.
+
+### Notes
+- Charts never query data during page render; they emit a canvas and load via the
+  `local_wb_dashboard_get_chart_data` web service.
+- On invalid input (missing/unknown `source`, unknown `type`) the shortcode returns a
+  short error message instead of breaking the page.
+- Colours: `color1` is the first slice/series, `color2` the second, and so on.
+
+---
+
+## 2. Source: `reportbuilder`
+
+Pulls from a **core Report Builder** report. It has two shaping modes, chosen by
+which parameters you supply. Access is enforced per report: a viewer who lacks
+permission on a referenced report gets an error, not data.
+
+### Mode A — two-report delta (a value and its remainder)
+
+Reads a single number from the first row of each of two reports and renders
+`[base, total − base]`. This is the "logged vs remaining" shape.
+
+| Param | Description |
+|-------|-------------|
+| `idbase` | Report id supplying the **achieved** value. |
+| `fieldbase` | Field in that report holding the number. |
+| `idtotal` | Report id supplying the **target/total** value. |
+| `fieldtotal` | Field in that report holding the number. |
+
+Best rendered as `doughnut` or `progress` (also works as `bar` / `horizontalbar`,
+which then show two bars). The source also exposes `total` as the axis maximum, which
+`progress` uses to fill the bar to 100 %.
+
+```
+[chart type=doughnut source=reportbuilder idbase=3 fieldbase=minuteslogged idtotal=5 fieldtotal=minutestarget width=32 height=20]
+[chart type=progress  source=reportbuilder idbase=3 fieldbase=minuteslogged idtotal=5 fieldtotal=minutestarget width=40 height=8 title="Completion"]
+```
+
+### Mode B — rows (one data point per report row)
+
+Reads every row of one report; each row becomes one data point. An optional
+`stackfield` groups rows into series (for stacked/grouped bars).
+
+| Param | Description |
+|-------|-------------|
+| `report` | The report id. |
+| `categoryfield` | Field used as the category / x-axis label (one bar/point per distinct value). |
+| `valuefield` | Field used as the **numeric** value (bar height). Required unless `aggregation=count`. |
+| `stackfield` | *(optional)* Field whose distinct values become separate stacked series. |
+| `aggregation` | *(optional)* `sum` (default) adds up `valuefield` per category; `count` tallies one per row (no `valuefield` needed). |
+
+Best rendered as `bar`, `horizontalbar`, or `stackedbar` (with `stackfield`).
+
+```
+[chart type=bar        source=reportbuilder report=3 categoryfield=month valuefield=total width=40 height=24]
+[chart type=stackedbar source=reportbuilder report=3 categoryfield=month valuefield=total stackfield=status width=40 height=24]
+```
+
+**Counting rows** — for a report where each row is an entity (e.g. a user), count
+rows per category instead of summing a number. No numeric field is needed:
+
+```
+[chart type=bar source=reportbuilder report=3 categoryfield=country aggregation=count width=40 height=24]
+[chart type=stackedbar source=reportbuilder report=3 categoryfield=country stackfield=role aggregation=count width=40 height=24]
+```
+
+### Mode C — multi-report totals (one bar per report)
+
+Renders one data point per report: its **row count**, or the sum of a value field
+across its rows. Labels are the report names. Use this to compare "how many users
+(rows) are in report A vs report B vs …".
+
+| Param | Description |
+|-------|-------------|
+| `reports` | Comma-separated report ids, e.g. `reports=6,3`. |
+| `aggregation` | `count` (default here) counts rows per report; `sum` adds `valuefield`. |
+| `valuefield` | *(optional)* Field to sum per report when `aggregation=sum`. |
+
+```
+[chart type=bar source=reportbuilder reports=6,3 aggregation=count title="Users per report"]
+```
+
+### Field names & values
+- `valuefield` must resolve to a **numeric** value; text coerces to `0`. Category and
+  stack fields are treated as labels.
+- Field names are matched case-insensitively against the report column's **name** or
+  its **unique identifier** (e.g. `user:fullname`). Use identifiers **without spaces**
+  — `filter_shortcodes` splits arguments on whitespace.
+
+---
+
+## 3. Chart types
+
+| `type` | Shape it expects | Renders as |
+|--------|------------------|-----------|
+| `doughnut` | one series of N slices (e.g. two-report delta) | Ring chart; optional centre text (`centertext`), no legend/tooltip. |
+| `bar` | categories × one or more series | Vertical bars. |
+| `horizontalbar` | categories × one or more series | Horizontal bars (`indexAxis: y`). |
+| `stackedbar` | categories × multiple series (use `stackfield`) | Grouped **stacked** bars. |
+| `progress` | one series of N segments + a total | Single horizontal stacked bar with a fixed maximum — a progress/percentage bar. |
+
+`line` and `pie` are intentionally out of the v1 set (easy to add later).
+
+---
+
+## 4. `[chartfilter]`
+
+Renders a page-level control. Its value is shared via the URL (`?ldf_<key>=…`) and a
+per-user cache, and fans out to every chart on the page that `consumes` the key.
+
+### Flags
+
+| Flag | Values | Default | Description |
+|------|--------|---------|-------------|
+| `key` | alphanumeric | — (required) | The logical filter key. Charts reference it via `consumes=`, and the source maps it to its own filtering. |
+| `type` | `select`, `date`, `text`, `number` | `text` | The control type. |
+| `pageid` | alphanumeric | `default` | Must match the charts' `pageid`. |
+| `label` | text | the key | Visible label. |
+| `default` | text | — | Initial value. |
+| `options` | `value:Label,value:Label` | — | **`select` only.** The dropdown options. |
+| `operator` | `eq`, `gte`, `lte` | `eq` | **`number` only.** Comparison used when applying the value. |
+
+### How each type applies
+
+Each filter emits a neutral constraint; the source applies it natively. For the
+`reportbuilder` source, the `key` must match one of the report's own active filters
+(by unique identifier, or the short name after the `:`), and it is applied as that
+report filter:
+
+| Filter type | Constraint | Report Builder mapping |
+|-------------|-----------|------------------------|
+| `select` | equals | select filter, "is equal to" |
+| `text` | contains | text filter, "contains" |
+| `number` | eq / gte / lte (per `operator`) | number filter, matching operator |
+| `date` | on/after the chosen date | date filter, range from the chosen date |
+
+A filter whose `key` a report does not have is simply ignored by that chart.
+
+```
+[chartfilter key=status  type=select label="Status" options="1:Open,2:Closed" pageid=demo]
+[chartfilter key=period  type=date   label="From"    pageid=demo]
+[chartfilter key=minhits type=number label="Min hits" operator=gte default=10 pageid=demo]
+```
+
+---
+
+## 5. A full page example
+
+```
+[chartfilter key=period type=date label="From" pageid=team]
+
+[chart type=doughnut  source=reportbuilder idbase=3 fieldbase=minuteslogged idtotal=5 fieldtotal=minutestarget consumes=period pageid=team]
+[chart type=progress  source=reportbuilder idbase=3 fieldbase=minuteslogged idtotal=5 fieldtotal=minutestarget consumes=period pageid=team height=8]
+[chart type=stackedbar source=reportbuilder report=7 categoryfield=month valuefield=total stackfield=status consumes=period pageid=team]
+```
+
+Changing **From** updates the URL, is remembered per user, and re-queries all three
+charts — each applying `period` through its own report's date filter.
