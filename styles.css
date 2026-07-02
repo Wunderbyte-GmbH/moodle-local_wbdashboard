@@ -17,6 +17,38 @@
     }
 }
 
+/* Numeric "digits" field (a number, count or percentage). */
+.local-dashboard-digits {
+    position: relative;
+    display: inline-block;
+    min-width: 6rem;
+    margin: 0 0.75rem 0.75rem 0;
+    text-align: center;
+    vertical-align: top;
+}
+
+.local-dashboard-digits-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.local-dashboard-digits-label {
+    margin-top: 0.25rem;
+    font-weight: 600;
+    color: #666;
+}
+
+/* Reuses the chart loading animation defined above. */
+.local-dashboard-digits-skeleton {
+    position: absolute;
+    inset: 0;
+    border-radius: 0.5rem;
+    background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%);
+    background-size: 400% 100%;
+    animation: local-dashboard-chart-loading 1.4s ease infinite;
+}
+
 /* Page-level filter controls. */
 .local-dashboard-filter {
     display: inline-block;

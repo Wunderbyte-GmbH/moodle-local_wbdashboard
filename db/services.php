@@ -31,6 +31,12 @@ $functions = [
         'type'        => 'read',
         'ajax'        => true,
     ],
+    'local_wb_dashboard_get_digits_data' => [
+        'classname'   => 'local_wb_dashboard\external\get_digits_data',
+        'description' => 'Return a single reduced value (number, count or percentage) for a digits field.',
+        'type'        => 'read',
+        'ajax'        => true,
+    ],
     'local_wb_dashboard_set_filter_state' => [
         'classname'   => 'local_wb_dashboard\external\set_filter_state',
         'description' => 'Persist the per-user page filter state.',

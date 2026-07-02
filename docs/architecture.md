@@ -1,8 +1,9 @@
 # local_wb_dashboard — architecture
 
-Generic, shortcode-driven chart engine. One shortcode renders any supported chart
-type from any registered data source; a second shortcode renders page-level filters
-that every chart on the page reacts to.
+Generic, shortcode-driven dashboard engine. One shortcode renders any supported
+chart type from any registered data source; a second renders a single value
+(number/count/percentage) from the same sources; a third renders page-level filters
+that every chart and value on the page reacts to.
 
 ## Patterns
 
@@ -10,14 +11,27 @@ that every chart on the page reacts to.
   (`doughnut_chart_builder`, `bar_chart_builder`) that assembles the **complete**,
   Chart.js-ready `chart_config` in PHP. The JS is a thin runtime: it instantiates
   the config and wires JS-only plugins (center-text) by name — it builds no config.
+- **Shared data pipeline** — `local\source\pipeline::fetch()` is the single
+  server-side path from a definition to data: resolve the source, allowlist its
+  params, enforce object-level access, translate page filters into neutral
+  constraints and return the `chart_data` DTO. Every display web service
+  (`get_chart_data`, `get_digits_data`) runs this identical pipeline; only what it
+  does with the DTO differs.
+- **Reducer** — for single-value fields, `local\digits\digits_reducer` collapses the
+  same `chart_data` DTO to one `digits_result` (a number = sum of the series, or a
+  percentage = base ÷ total from the two-report delta's `axismax`). The digits JS is
+  a thin runtime like the chart one, but writes DOM text (via `textContent`) instead
+  of drawing a canvas.
 - **Factory** — `filter_factory` creates filter controls; `source_registry` is the
   internal source factory/allowlist.
 - **DTO** — `chart_data` (+ `chart_series`) is the normalized shape every source
-  produces and the builder consumes. `filter_constraint` is the neutral, source-
-  agnostic expression of a filter value.
-- **Definitions (drag-and-drop seam)** — `chart_definition` / `filter_definition`
-  fully describe a chart/filter. The shortcode is one producer today; a future
-  DB-backed drag-and-drop builder is another, feeding the same pipeline.
+  produces; the chart builder and the digits reducer both consume it.
+  `filter_constraint` is the neutral, source-agnostic expression of a filter value.
+- **Definitions (drag-and-drop seam)** — `chart_definition` / `digits_definition` /
+  `filter_definition` fully describe a chart/value/filter. The shortcode is one
+  producer today; a future DB-backed drag-and-drop builder is another, feeding the
+  same pipeline. `digits_definition` also derives a **deterministic, constant DOM id**
+  from its configuration so the rendered value can be targeted from CSS.
 
 ## Filters
 
@@ -82,3 +96,26 @@ sequenceDiagram
 | `horizontalbar` | `bar_chart_builder` + indexAxis 'y'                                   |
 | `stackedbar`    | `bar_chart_builder` + stacked scales, per-dataset stack groups        |
 | `progress`      | `bar_chart_builder` horizontal + stacked + fixed axis max             |
+
+## Single-value fields (digits)
+
+The `[digits]` shortcode is the non-canvas display component. It shares the source
+layer and filter behaviour with charts but renders one value as DOM text.
+
+```mermaid
+flowchart TD
+  SC["[digits] shortcode"] --> DEF["digits_definition<br/>(reserved keys + deterministic DOM id)"]
+  DEF --> TPL["digits.mustache<br/>&lt;div id=constant&gt; value + label + data-wsargs"]
+  TPL --> AMD["amd/src/digits.js init()"]
+  AMD --> BUS["filterbus.js (page singleton)"]
+  BUS --> WS["WS local_wb_dashboard_get_digits_data"]
+  WS --> PIPE["source\\pipeline::fetch()  (shared)<br/>resolve + authz + filters &rarr; chart_data DTO"]
+  PIPE --> RED["digits\\digits_reducer::reduce(dto, mode)<br/>number/count = sum · percent = base/total"]
+  RED --> FMT["format_float + unit/%  &rarr; {value, formatted, ispercent, label}"]
+  FMT --> DOM["digits.js (thin): textContent into the constant-id nodes"]
+```
+
+| `display` mode | Reduction of the DTO |
+|----------------|----------------------|
+| `number` / `count` | Sum of the first series' data points (parts of one whole). |
+| `percent` | `base ÷ total × 100`. base = first data point; total = `axismax` meta (delta), else the second data point (two-report part/whole ratio), else base. Divide-by-zero &rarr; 0. |

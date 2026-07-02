@@ -29,8 +29,8 @@ const URL_PREFIX = 'ldf_';
 const DEBOUNCE_MS = 300;
 
 // Page-singleton state.
-const state = {}; // key => {value, type}.
-const charts = []; // {api, keys}.
+const state = {};
+const charts = [];
 let pageid = 'default';
 let urlLoaded = false;
 let persistTimer = null;

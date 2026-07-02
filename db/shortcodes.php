@@ -35,4 +35,9 @@ $shortcodes = [
         'wraps'       => false,
         'description' => 'shortcode:chartfilter',
     ],
+    'digits' => [
+        'callback'    => 'local_wb_dashboard\shortcodes::digits',
+        'wraps'       => false,
+        'description' => 'shortcode:digits',
+    ],
 ];

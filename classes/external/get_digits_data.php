@@ -22,24 +22,23 @@ use core_external\external_function_parameters;
 use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
-use local_wb_dashboard\local\chart\chart_director;
+use local_wb_dashboard\local\digits\digits_reducer;
 use local_wb_dashboard\local\source\pipeline;
+use moodle_exception;
 
 /**
- * Return the fully-built chart configuration for a chart definition.
+ * Return a single, reduced numeric value (number, count or percentage) for a
+ * digits-field definition, ready to write straight into the DOM.
  *
- * The return is a JSON string ("payload"): the DTO/config varies by source and
- * type and carries free-form metadata, which does not fit Report Builder's
- * strict external typing. The payload is fully sanitized in PHP before encoding
- * (numbers cast to float, all strings passed through format_string upstream in
- * the source/builder), so PARAM_RAW is safe here — the client must still set any
- * text via textContent, never innerHTML.
+ * Unlike the chart web service (a free-form JSON blob) the shape here is fixed,
+ * so it uses strict external typing. Strings are formatted server-side; the
+ * client must still set text via textContent, never innerHTML.
  *
  * @package    local_wb_dashboard
  * @copyright  2026 Wunderbyte GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class get_chart_data extends external_api {
+class get_digits_data extends external_api {
     /**
      * Parameters.
      *
@@ -48,7 +47,7 @@ class get_chart_data extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'source' => new external_value(PARAM_ALPHANUMEXT, 'Source name'),
-            'type' => new external_value(PARAM_ALPHA, 'Semantic chart type'),
+            'display' => new external_value(PARAM_ALPHA, 'Display mode: number|count|percent', VALUE_DEFAULT, 'number'),
             'sourceparams' => new external_multiple_structure(
                 new external_single_structure([
                     'name' => new external_value(PARAM_ALPHANUMEXT, 'Param name'),
@@ -68,14 +67,9 @@ class get_chart_data extends external_api {
                 VALUE_DEFAULT,
                 []
             ),
-            'colors' => new external_multiple_structure(
-                new external_value(PARAM_TEXT, 'CSS colour'),
-                'Colour palette override',
-                VALUE_DEFAULT,
-                []
-            ),
-            'title' => new external_value(PARAM_TEXT, 'Chart title', VALUE_DEFAULT, ''),
-            'centertext' => new external_value(PARAM_BOOL, 'Show doughnut centre text', VALUE_DEFAULT, true),
+            'label' => new external_value(PARAM_TEXT, 'Field label override', VALUE_DEFAULT, ''),
+            'decimals' => new external_value(PARAM_INT, 'Decimal places (0-6)', VALUE_DEFAULT, 0),
+            'unit' => new external_value(PARAM_TEXT, 'Unit suffix (percent mode always uses %)', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -83,45 +77,62 @@ class get_chart_data extends external_api {
      * Execute.
      *
      * @param string $source
-     * @param string $type
+     * @param string $display
      * @param array $sourceparams
      * @param array $filtervalues
-     * @param array $colors
-     * @param string $title
+     * @param string $label
+     * @param int $decimals
+     * @param string $unit
      * @return array
      */
     public static function execute(
         string $source,
-        string $type,
+        string $display = 'number',
         array $sourceparams = [],
         array $filtervalues = [],
-        array $colors = [],
-        string $title = '',
-        bool $centertext = true
+        string $label = '',
+        int $decimals = 0,
+        string $unit = ''
     ): array {
         $params = self::validate_parameters(self::execute_parameters(), [
             'source' => $source,
-            'type' => $type,
+            'display' => $display,
             'sourceparams' => $sourceparams,
             'filtervalues' => $filtervalues,
-            'colors' => $colors,
-            'title' => $title,
-            'centertext' => $centertext,
+            'label' => $label,
+            'decimals' => $decimals,
+            'unit' => $unit,
         ]);
 
         require_login();
         self::validate_context(context_system::instance());
 
-        // Fetch normalized data (source resolve + authz + filters), then build
-        // the FULL chart config.
-        $dto = pipeline::fetch($params['source'], $params['sourceparams'], $params['filtervalues']);
-        $config = (new chart_director())->build($params['type'], $dto, [
-            'colors' => $params['colors'],
-            'title' => $params['title'],
-            'centertext' => $params['centertext'],
-        ]);
+        if (!digits_reducer::is_valid_mode($params['display'])) {
+            throw new moodle_exception('error:unknowndisplaymode', 'local_wb_dashboard', '', $params['display']);
+        }
 
-        return ['payload' => json_encode($config->jsonSerialize())];
+        // Same server pipeline as charts, then collapse the DTO to one value.
+        $dto = pipeline::fetch($params['source'], $params['sourceparams'], $params['filtervalues']);
+        $result = digits_reducer::reduce($dto, $params['display']);
+
+        $decimals = max(0, min(6, $params['decimals']));
+        $displaylabel = $params['label'] !== '' ? $params['label'] : $result->label;
+
+        if ($result->ispercent) {
+            $formatted = format_float($result->value, $decimals) . '%';
+        } else {
+            $formatted = format_float($result->value, $decimals);
+            if ($params['unit'] !== '') {
+                $formatted .= ' ' . $params['unit'];
+            }
+        }
+
+        return [
+            'value' => $result->value,
+            'formatted' => $formatted,
+            'ispercent' => $result->ispercent,
+            'label' => $displaylabel,
+        ];
     }
 
     /**
@@ -131,7 +142,10 @@ class get_chart_data extends external_api {
      */
     public static function execute_returns(): external_single_structure {
         return new external_single_structure([
-            'payload' => new external_value(PARAM_RAW, 'JSON-encoded, sanitized Chart.js config'),
+            'value' => new external_value(PARAM_FLOAT, 'Raw numeric value'),
+            'formatted' => new external_value(PARAM_TEXT, 'Locale-formatted display string'),
+            'ispercent' => new external_value(PARAM_BOOL, 'Whether the value is a percentage'),
+            'label' => new external_value(PARAM_TEXT, 'Display label'),
         ]);
     }
 }

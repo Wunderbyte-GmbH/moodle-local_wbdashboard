@@ -14,19 +14,35 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace local_wb_dashboard\local\digits;
+
 /**
- * Version details for local_wb_dashboard.
+ * The reduced result of a digits field: a single value plus its display hints.
  *
  * @package    local_wb_dashboard
  * @copyright  2026 Wunderbyte GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+class digits_result {
+    /** @var float The primary numeric value to display (a count/number, or the percentage itself). */
+    public float $value;
 
-defined('MOODLE_INTERNAL') || die();
+    /** @var bool Whether $value is a percentage (0-100). */
+    public bool $ispercent;
 
-$plugin->component = 'local_wb_dashboard';
-$plugin->version   = 2026070201;
-$plugin->requires  = 2024100700; // Moodle 4.5.
-$plugin->supported = [405, 501];
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.2.0';
+    /** @var string A fallback label derived from the data (author label overrides this). */
+    public string $label;
+
+    /**
+     * Constructor.
+     *
+     * @param float $value
+     * @param bool $ispercent
+     * @param string $label
+     */
+    public function __construct(float $value, bool $ispercent, string $label) {
+        $this->value = $value;
+        $this->ispercent = $ispercent;
+        $this->label = $label;
+    }
+}

@@ -19,9 +19,12 @@ namespace local_wb_dashboard;
 use core\output\html_writer;
 use local_wb_dashboard\local\chart\chart_type;
 use local_wb_dashboard\local\definition\chart_definition;
+use local_wb_dashboard\local\definition\digits_definition;
 use local_wb_dashboard\local\definition\filter_definition;
+use local_wb_dashboard\local\digits\digits_reducer;
 use local_wb_dashboard\local\filter\filter_factory;
 use local_wb_dashboard\local\filter\page_filter_state;
+use local_wb_dashboard\local\source\source_registry;
 
 /**
  * Shortcode handlers for local_wb_dashboard.
@@ -120,5 +123,46 @@ class shortcodes {
         $context['isnumber'] = ($definition->type === 'number');
 
         return $OUTPUT->render_from_template('local_wb_dashboard/chartfilter', $context);
+    }
+
+    /**
+     * [digits ...] — render a single numeric value (number, count or percentage)
+     * as a styleable DOM field. Data is loaded client-side via the web service.
+     *
+     * @param string $shortcode
+     * @param array $args
+     * @param string|null $content
+     * @param object $env
+     * @param \Closure $next
+     * @return string
+     */
+    public static function digits($shortcode, $args, $content, $env, $next): string {
+        global $OUTPUT;
+
+        $args = (array)$args;
+        $definition = digits_definition::from_shortcode_args($args);
+
+        if ($definition->source === '') {
+            return get_string('error:missingsource', 'local_wb_dashboard');
+        }
+        if (!source_registry::exists($definition->source)) {
+            return get_string('error:unknownsource', 'local_wb_dashboard', s($definition->source));
+        }
+        if (!digits_reducer::is_valid_mode($definition->display)) {
+            return get_string('error:unknowndisplaymode', 'local_wb_dashboard', s($definition->display));
+        }
+
+        $domid = $definition->to_domid();
+        $context = [
+            'domid' => $domid,
+            'valueid' => $domid . '-value',
+            'labelid' => $domid . '-label',
+            'label' => $definition->displayopts['label'] ?? '',
+            'pageid' => $definition->pageid,
+            'consumes' => json_encode($definition->consumesfilters),
+            'wsargs' => json_encode($definition->to_wsargs()),
+        ];
+
+        return $OUTPUT->render_from_template('local_wb_dashboard/digits', $context);
     }
 }

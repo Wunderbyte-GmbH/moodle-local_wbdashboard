@@ -1,13 +1,16 @@
 # local_wb_dashboard — shortcode reference
 
-Two shortcodes are provided. They require the third-party **`filter_shortcodes`**
+Three shortcodes are provided. They require the third-party **`filter_shortcodes`**
 filter to be installed and enabled in the context where the content is shown.
 
 - **`[chart ...]`** — renders one chart. Data is loaded client-side from a web
   service, so the tag only emits a canvas; the chart draws once the data arrives.
-- **`[chartfilter ...]`** — renders one page-level filter control. Every chart on
-  the same page (same `pageid`) that "consumes" the filter's key re-queries when the
-  filter changes.
+- **`[digits ...]`** — renders one **single value** (a number, count or percentage)
+  as a styleable text field with a constant DOM id (see §4). Same client-side load
+  and filter behaviour as `[chart]`, but the value is plain DOM text, not a canvas.
+- **`[chartfilter ...]`** — renders one page-level filter control. Every chart or
+  digits field on the same page (same `pageid`) that "consumes" the filter's key
+  re-queries when the filter changes.
 
 ---
 
@@ -133,7 +136,100 @@ across its rows. Labels are the report names. Use this to compare "how many user
 
 ---
 
-## 4. `[chartfilter]`
+## 4. `[digits]`
+
+Renders a **single value** — a number, a count, or a percentage — as plain DOM
+text you can style freely. Like `[chart]` it emits an empty field on page render and
+loads the value client-side from the `local_wb_dashboard_get_digits_data` web
+service, so it reacts to page filters (`consumes` / `pageid`) exactly the same way.
+
+It reuses the same `reportbuilder` source (§2): whatever numbers a chart could draw,
+a digits field can reduce to one value. The whole first data series is collapsed to a
+single scalar — for `count`/`number` that is the **sum** of the series; for `percent`
+it is `base ÷ total × 100`.
+
+### Flags
+
+| Flag | Values | Default | Description |
+|------|--------|---------|-------------|
+| `source` | `reportbuilder` | — (required) | The data source (see §2). |
+| `display` | `number`, `count`, `percent` | `number` | How to reduce the source data (see below). `number` and `count` are equivalent (both sum the series). |
+| `label` | text | source-derived | Text shown under the value. Overrides any label the source provides. |
+| `decimals` | `0`–`6` | `0` | Decimal places for the formatted value (locale-aware via `format_float`). |
+| `unit` | text | — | Suffix appended after the value (e.g. `pts`, `€`). Ignored for `percent`, which always uses `%`. |
+| `consumes` | comma-separated filter keys | *(all)* | Which page filter keys this field reacts to. |
+| `pageid` | alphanumeric | `default` | Groups the field with the filters/charts sharing the same `pageid`. |
+
+Any flag **not** in this table is passed to the source as a *source parameter* (see
+§2) — so `reports`, `report`, `valuefield`, `idbase`/`idtotal`, `aggregation`, etc.
+all work exactly as they do for `[chart]`.
+
+### `display` modes
+
+- **`count` / `number`** — sum of the first data series. This is meaningful when the
+  points are **parts of one whole**: a single report's row count, or a rows-mode
+  `aggregation=count` totalled across its categories. Summing the counts of *unrelated*
+  reports (`reports=6,3`) is **not** meaningful — for that, use `percent` (below) or one
+  `[digits]` per report.
+- **`percent`** — `base ÷ total × 100`. The total is resolved in this order:
+  1. **base/total delta** — `idbase`/`fieldbase` (the achieved value) over
+     `idtotal`/`fieldtotal` (the target). This reads a numeric field from each report.
+  2. **two-report ratio** — `reports=<part>,<whole>` with `aggregation=count`: the
+     first report's row count over the second's (e.g. *subset of users ÷ all users*).
+  3. a single value on its own resolves to `100%` (or `0%` when it is zero).
+
+  Division by zero yields `0`.
+
+### Examples
+
+```
+# Row count of a single report (report 6):
+[digits source=reportbuilder display=count reports=6 label="Active users"]
+
+# Sum of a numeric field across a report's rows:
+[digits source=reportbuilder display=number report=3 categoryfield=month valuefield=total label="Total hours"]
+
+# Percentage — subset vs all (count of report 6 ÷ count of report 3):
+[digits source=reportbuilder display=percent reports=6,3 aggregation=count label="% enrolled" decimals=1]
+
+# Percentage — a base/total field pair, reacting to a page date filter:
+[digits source=reportbuilder display=percent idbase=3 fieldbase=minuteslogged idtotal=5 fieldtotal=minutestarget label="Completion" decimals=1 consumes=period pageid=team]
+```
+
+> **Comparing two reports.** For "how much of the whole is this part" (a subset of users
+> vs all users), use `display=percent reports=<part>,<whole> aggregation=count` — the ratio,
+> not the sum. To show each report's raw count, use one `[digits]` per report; for a
+> side-by-side bar comparison use `[chart type=bar reports=6,3 aggregation=count]`.
+
+### DOM ids & styling
+
+Each field is wrapped in a `<div>` with a **deterministic, constant** id derived from
+its configuration (source + params + display mode), so it survives reloads and can be
+targeted from CSS or theme SCSS. The inner value and label carry sub-ids:
+
+```html
+<div class="local-dashboard-digits" id="local-dashboard-digits-ab12cd34ef56">
+    <div class="local-dashboard-digits-value" id="local-dashboard-digits-ab12cd34ef56-value">42%</div>
+    <div class="local-dashboard-digits-label" id="local-dashboard-digits-ab12cd34ef56-label">Completion</div>
+</div>
+```
+
+- Wrapper class `.local-dashboard-digits`, value class `.local-dashboard-digits-value`
+  (percentages also get `.local-dashboard-digits-value--percent`), label class
+  `.local-dashboard-digits-label`.
+- The id is a `local-dashboard-digits-` prefix plus a short hash. **Two fields with an
+  identical configuration on one page share the same id by design** — give them a
+  different `label`/config, or rely on the class, if you need to distinguish them.
+
+### Notes
+- On invalid input (missing/unknown `source`, unknown `display`) the shortcode returns
+  a short error message instead of breaking the page.
+- If the source returns no rows it raises an error server-side; the field shows the
+  standard notification rather than a value.
+
+---
+
+## 5. `[chartfilter]`
 
 Renders a page-level control. Its value is shared via the URL (`?ldf_<key>=…`) and a
 per-user cache, and fans out to every chart on the page that `consumes` the key.
@@ -174,15 +270,18 @@ A filter whose `key` a report does not have is simply ignored by that chart.
 
 ---
 
-## 5. A full page example
+## 6. A full page example
 
 ```
 [chartfilter key=period type=date label="From" pageid=team]
+
+[digits source=reportbuilder display=count reports=7 label="Members" consumes=period pageid=team]
+[digits source=reportbuilder display=percent idbase=3 fieldbase=minuteslogged idtotal=5 fieldtotal=minutestarget label="Completion" decimals=1 consumes=period pageid=team]
 
 [chart type=doughnut  source=reportbuilder idbase=3 fieldbase=minuteslogged idtotal=5 fieldtotal=minutestarget consumes=period pageid=team]
 [chart type=progress  source=reportbuilder idbase=3 fieldbase=minuteslogged idtotal=5 fieldtotal=minutestarget consumes=period pageid=team height=8]
 [chart type=stackedbar source=reportbuilder report=7 categoryfield=month valuefield=total stackfield=status consumes=period pageid=team]
 ```
 
-Changing **From** updates the URL, is remembered per user, and re-queries all three
-charts — each applying `period` through its own report's date filter.
+Changing **From** updates the URL, is remembered per user, and re-queries every field
+and chart above — each applying `period` through its own report's date filter.
