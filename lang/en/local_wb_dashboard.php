@@ -25,7 +25,13 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['cachedef_pagefilterstate'] = 'Per-user page filter state';
-$string['wb_dashboard:view'] = 'View dashboard charts';
+$string['chartsettings:colourslot'] = 'Colour {$a}';
+$string['chartsettings:gear'] = 'Colour settings';
+$string['chartsettings:intro'] = 'Choose which palette colour each slot uses. Slots left on their default keep following the active palette.';
+$string['chartsettings:invalidcolour'] = 'Choose a colour from the palette.';
+$string['chartsettings:paletteoption'] = 'Colour {$a->index} ({$a->hex})';
+$string['chartsettings:saved'] = 'Chart colours saved.';
+$string['chartsettings:title'] = 'Chart colours';
 $string['error:invalidfield'] = 'Invalid or missing report field.';
 $string['error:invalidreportid'] = 'Invalid or missing report id.';
 $string['error:missingfilterkey'] = 'The chartfilter shortcode requires a "key" argument.';
@@ -49,3 +55,5 @@ $string['shortcode:chartfilter'] = 'Render a page-level filter control that all 
 $string['shortcode:digits'] = 'Render a single numeric value (number, count or percentage) as a styleable field.';
 $string['subplugintype_wbdashboardpalette'] = 'Dashboard palette';
 $string['subplugintype_wbdashboardpalette_plural'] = 'Dashboard palettes';
+$string['wb_dashboard:configurecharts'] = 'Configure per-chart colours';
+$string['wb_dashboard:view'] = 'View dashboard charts';

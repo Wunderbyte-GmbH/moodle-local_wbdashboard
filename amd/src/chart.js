@@ -152,7 +152,7 @@ const createController = (canvas) => {
             source: wsargs.source,
             type: wsargs.type,
             sourceparams: wsargs.sourceparams || [],
-            colors: wsargs.colors || [],
+            chartid: wsargs.chartid || '',
             title: wsargs.title || '',
             centertext: wsargs.centertext !== false,
             filtervalues: Filterbus.valuesFor(consumes)
@@ -168,7 +168,7 @@ const createController = (canvas) => {
             .catch(Notification.exception);
     };
 
-    return {reload: reload, consumes: consumes};
+    return {reload: reload, consumes: consumes, chartid: wsargs.chartid || ''};
 };
 
 export default {
@@ -185,6 +185,14 @@ export default {
         canvas.dataset.ldInitialised = '1';
         const controller = createController(canvas);
         Filterbus.subscribe(controller, controller.consumes);
+        // Reload when this chart's stored colours change (settings gear saved).
+        if (controller.chartid) {
+            document.addEventListener('local_wb_dashboard:chart-reload', (e) => {
+                if (e.detail && e.detail.chartid === controller.chartid) {
+                    controller.reload();
+                }
+            });
+        }
         controller.reload();
     }
 };

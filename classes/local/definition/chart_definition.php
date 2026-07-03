@@ -41,7 +41,7 @@ class chart_definition {
     /** @var array Source-specific parameters (allowlisted by the source later). */
     public array $sourceparams;
 
-    /** @var array Display options: colors, title, width, height. */
+    /** @var array Display options: title, width, height, centertext. */
     public array $displayopts;
 
     /** @var string[] Logical filter keys this chart reacts to. Empty = every key its source maps. */
@@ -80,7 +80,8 @@ class chart_definition {
      * Build a definition from raw [chart] shortcode arguments.
      *
      * Reserved keys are extracted; every remaining key becomes a source param.
-     * Colours (color1, color2, ...) are collected into displayopts['colors'].
+     * Per-chart colours are no longer taken from the shortcode: they are managed
+     * through the per-chart settings gear and resolved server-side by chart id.
      *
      * @param array $args
      * @return self
@@ -100,19 +101,7 @@ class chart_definition {
             }
         }
 
-        // Collect colours in numeric order (color1, color2, ...).
-        $colors = [];
-        $colorkeys = array_filter(array_keys($args), static fn($k) => preg_match('/^color\d+$/', (string)$k));
-        sort($colorkeys, SORT_NATURAL);
-        foreach ($colorkeys as $ck) {
-            $color = self::clean_color((string)$args[$ck]);
-            if ($color !== '') {
-                $colors[] = $color;
-            }
-        }
-
         $displayopts = [
-            'colors' => $colors,
             'title'  => isset($args['title']) ? clean_param($args['title'], PARAM_TEXT) : '',
             'width'  => isset($args['width']) ? (float)$args['width'] : 32.0,
             'height' => isset($args['height']) ? (float)$args['height'] : 20.0,
@@ -121,7 +110,10 @@ class chart_definition {
                 ? (bool)clean_param((string)$args['centertext'], PARAM_BOOL) : true,
         ];
 
-        // Everything not reserved and not a colour key is a source parameter.
+        // Everything not reserved is a source parameter. Legacy colour args
+        // (color1, color2, ...) are ignored — colours are managed via the
+        // per-chart settings gear — and must not leak into the source params or
+        // the chart id.
         $sourceparams = [];
         foreach ($args as $k => $v) {
             if (in_array($k, self::RESERVED, true) || preg_match('/^color\d+$/', (string)$k)) {
@@ -131,6 +123,32 @@ class chart_definition {
         }
 
         return new self($source, $type, $sourceparams, $displayopts, $consumes, $pageid);
+    }
+
+    /**
+     * The stable, deterministic base id for this chart within a given context.
+     *
+     * Derived from the identity-defining parts only (context, source, type and
+     * source params) — cosmetic options (title, size) are excluded so renaming or
+     * resizing a chart keeps its stored settings. Folding in the context id means
+     * the same shortcode placed on two different pages/blocks gets distinct ids.
+     *
+     * Two identical charts in the same content share this base; the shortcode
+     * layer disambiguates them with an occurrence suffix.
+     *
+     * @param int $contextid The context the chart is rendered in.
+     * @return string
+     */
+    public function chartid_base(int $contextid): string {
+        $params = $this->sourceparams;
+        ksort($params);
+        $canonical = json_encode([
+            'context'      => $contextid,
+            'source'       => $this->source,
+            'type'         => $this->type,
+            'sourceparams' => $params,
+        ]);
+        return 'c' . substr(sha1((string)$canonical), 0, 12);
     }
 
     /**
@@ -150,26 +168,8 @@ class chart_definition {
             'type'         => $this->type,
             'pageid'       => $this->pageid,
             'sourceparams' => $pairs,
-            'colors'       => $this->displayopts['colors'] ?? [],
             'title'        => $this->displayopts['title'] ?? '',
             'centertext'   => $this->displayopts['centertext'] ?? true,
         ];
-    }
-
-    /**
-     * Validate and normalize a CSS colour argument (hex or simple name).
-     *
-     * @param string $value
-     * @return string Empty string if invalid.
-     */
-    private static function clean_color(string $value): string {
-        $value = trim($value);
-        if (preg_match('/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) {
-            return $value;
-        }
-        if (preg_match('/^[a-zA-Z]{1,20}$/', $value)) {
-            return $value;
-        }
-        return '';
     }
 }

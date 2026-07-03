@@ -4,3 +4,10 @@
  * scoped to .wb-palette-<name> (the class the component wrappers carry). The bundled
  * standard palette (wbdashboardpalette_standard) reproduces the plugin's built-in look.
  * See docs/architecture.md and docs/shortcodes.md. */
+
+/* Structural (non-branding) layout for the per-chart settings toolbar. */
+.local-dashboard-chart-toolbar {
+    display: flex;
+    justify-content: flex-end;
+}
+

@@ -21,8 +21,10 @@ use core_privacy\local\metadata\null_provider;
 /**
  * Privacy provider for local_wb_dashboard.
  *
- * The plugin stores no personal data in the database. Page filter selections are
- * held transiently in MUC only.
+ * The plugin stores no personal data about viewers. Page filter selections are
+ * held transiently in MUC only. Per-chart colour overrides
+ * (local_wb_dashboard_chartcfg) are site-wide authoring config, not user data;
+ * their usermodified column is incidental authoring metadata, not tracked here.
  *
  * @package    local_wb_dashboard
  * @copyright  2026 Wunderbyte GmbH

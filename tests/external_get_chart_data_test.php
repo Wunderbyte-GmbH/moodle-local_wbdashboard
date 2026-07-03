@@ -19,6 +19,7 @@ namespace local_wb_dashboard;
 use core_reportbuilder\generator;
 use core_user\reportbuilder\datasource\users;
 use local_wb_dashboard\external\get_chart_data;
+use local_wb_dashboard\local\settings\chart_settings;
 
 /**
  * Tests for the generic chart-data web service driving the full server pipeline.
@@ -65,7 +66,7 @@ final class external_get_chart_data_test extends \advanced_testcase {
                 'valuefield' => 'user:fullname',
             ]),
             [],
-            [],
+            '',
             ''
         );
 
@@ -97,7 +98,7 @@ final class external_get_chart_data_test extends \advanced_testcase {
                 'aggregation' => 'count',
             ]),
             [],
-            [],
+            '',
             ''
         );
 
@@ -118,16 +119,17 @@ final class external_get_chart_data_test extends \advanced_testcase {
         $this->setAdminUser();
 
         $this->expectException(\moodle_exception::class);
-        get_chart_data::execute('nosuchsource', 'bar', [], [], [], '');
+        get_chart_data::execute('nosuchsource', 'bar', [], [], '', '');
     }
 
     /**
-     * Build a one-series bar chart and return its first dataset colour.
+     * Build a one-series bar chart for a given chart id and return its first
+     * dataset colour (the effective, resolved colour).
      *
-     * @param array $colors Colour override passed to the web service.
+     * @param string $chartid Chart id whose stored override (if any) applies.
      * @return string
      */
-    private function first_bar_color(array $colors): string {
+    private function first_bar_color(string $chartid): string {
         /** @var generator $rbgenerator */
         $rbgenerator = $this->getDataGenerator()->get_plugin_generator('core_reportbuilder');
         $report = $rbgenerator->create_report(['name' => 'Colours', 'source' => users::class, 'default' => 0]);
@@ -142,31 +144,38 @@ final class external_get_chart_data_test extends \advanced_testcase {
                 'aggregation' => 'count',
             ]),
             [],
-            $colors,
+            $chartid,
             ''
         );
         $config = json_decode($result['payload'], true);
-        return $config['data']['datasets'][0]['backgroundColor'];
+        $background = $config['data']['datasets'][0]['backgroundColor'];
+        // Bars carry a per-bar colour list; a doughnut a single string.
+        return is_array($background) ? $background[0] : $background;
     }
 
-    public function test_empty_colors_use_active_palette(): void {
+    public function test_no_override_uses_active_palette(): void {
         $this->resetAfterTest();
         $this->setAdminUser();
         $this->getDataGenerator()->create_user();
 
-        // No colours supplied → the active (standard) palette's first colour.
-        $this->assertSame(\wbdashboardpalette_standard\palette::DEFAULTS[0], $this->first_bar_color([]));
+        // No stored override → the active (standard) palette's first colour.
+        $this->assertSame(\wbdashboardpalette_standard\palette::DEFAULTS[0], $this->first_bar_color(''));
 
         // Tuning the active palette changes it.
         set_config('color1', '#123456', 'wbdashboardpalette_standard');
-        $this->assertSame('#123456', $this->first_bar_color([]));
+        $this->assertSame('#123456', $this->first_bar_color(''));
     }
 
-    public function test_explicit_colors_override_palette(): void {
+    public function test_stored_override_wins_over_palette(): void {
         $this->resetAfterTest();
         $this->setAdminUser();
         $this->getDataGenerator()->create_user();
 
-        $this->assertSame('#abcdef', $this->first_bar_color(['#abcdef']));
+        // A stored override for the first slot beats the palette for that chart id.
+        chart_settings::save('cdeadbeef0001', [0 => '#abcdef']);
+        $this->assertSame('#abcdef', $this->first_bar_color('cdeadbeef0001'));
+
+        // A different chart id with no override still follows the palette.
+        $this->assertSame(\wbdashboardpalette_standard\palette::DEFAULTS[0], $this->first_bar_color('cdeadbeef0002'));
     }
 }

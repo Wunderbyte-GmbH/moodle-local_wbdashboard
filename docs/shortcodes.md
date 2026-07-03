@@ -25,7 +25,6 @@ filter to be installed and enabled in the context where the content is shown.
 | `title` | text | plugin name | Chart title, also used as the canvas `aria-label`. |
 | `width` | number (rem) | `32` | Max width of the chart container. |
 | `height` | number (rem) | `20` | Height of the chart container. Use a small value (≈`8`) for `progress`. |
-| `color1`, `color2`, … | `#rrggbb`, `#rgb`, or a CSS colour name | accessible palette | Colours applied in order (per slice for doughnut, per series/segment for bars). Any not supplied fall back to a colour-blind-safe palette. |
 | `consumes` | comma-separated filter keys | *(all)* | Which page filter keys this chart reacts to. Omit to react to every filter the source can map. |
 | `pageid` | alphanumeric | `default` | Groups the chart with the filters and other charts that share the same `pageid`. |
 | `centertext` | `1`/`0` | `1` | **Doughnut only.** `0` hides the centre value/label text. |
@@ -33,12 +32,15 @@ filter to be installed and enabled in the context where the content is shown.
 Any flag **not** in the table above is passed to the source as a *source parameter*
 (see §2) — unknown parameters are dropped server-side.
 
+Colours are **not** set on the shortcode. Each chart follows the active palette by
+default and can be individually recoloured through the per-chart settings gear (see
+§7).
+
 ### Notes
 - Charts never query data during page render; they emit a canvas and load via the
   `local_wb_dashboard_get_chart_data` web service.
 - On invalid input (missing/unknown `source`, unknown `type`) the shortcode returns a
   short error message instead of breaking the page.
-- Colours: `color1` is the first slice/series, `color2` the second, and so on.
 
 ---
 
@@ -285,3 +287,38 @@ A filter whose `key` a report does not have is simply ignored by that chart.
 
 Changing **From** updates the URL, is remembered per user, and re-queries every field
 and chart above — each applying `period` through its own report's date filter.
+
+---
+
+## 7. Per-chart colours (settings gear)
+
+Charts follow the **active palette** by default. To recolour an individual chart,
+users with the `local/wb_dashboard:configurecharts` capability (managers by default)
+see a small **gear** button on each chart. It opens a modal with one **dropdown per
+palette slot**, each listing the whole active palette, so a slot can be repointed at
+any other palette colour; slots left on their default keep following the palette.
+Saving re-draws that chart immediately — no page reload.
+
+Overrides are:
+
+- **Stored server-side**, in `local_wb_dashboard_chartcfg`, and therefore **shared by
+  all viewers** (this is authoring config, not a per-user preference).
+- **Sparse** — only the slots you actually override are stored; everything else tracks
+  the live palette, so changing the palette still updates the untouched slots.
+- **Merged over the palette at query time** (`chart_settings::resolve()`), then applied
+  by the builder exactly where `color1`, `color2`, … used to apply.
+
+### Chart identity
+
+Each override is keyed to a **stable chart id** derived automatically from the chart's
+context and its identity-defining configuration (`source`, `type` and source params).
+Consequences worth knowing:
+
+- Cosmetic edits (changing `title`, `width`, `height`) **keep** a chart's saved colours.
+- Changing a **data** parameter (e.g. `report=3` → `report=4`) is a different chart, so
+  it starts again from the palette.
+- The id is namespaced by **context**, so the same shortcode on two different pages is
+  configured independently. If a page/block is **duplicated or restored** to a new
+  context, its saved colours do not follow and the chart reverts to the palette until
+  re-set.
+- Two identical charts in the **same** content field are disambiguated by render order.

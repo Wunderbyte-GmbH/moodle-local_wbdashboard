@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/wb_dashboard/db" VERSION="20260703" COMMENT="XMLDB file for local_wb_dashboard"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="local_wb_dashboard_chartcfg" COMMENT="Per-chart display overrides (e.g. colours), keyed by a stable chart id.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="chartid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="Stable, deterministic chart identifier (context + config hash)."/>
+        <FIELD NAME="config" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="JSON display overrides, e.g. {&quot;colors&quot;:{&quot;0&quot;:&quot;#ff0000&quot;}}."/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="chartid" UNIQUE="true" FIELDS="chartid"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

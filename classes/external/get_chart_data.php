@@ -23,7 +23,7 @@ use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
 use local_wb_dashboard\local\chart\chart_director;
-use local_wb_dashboard\local\palette\palette_manager;
+use local_wb_dashboard\local\settings\chart_settings;
 use local_wb_dashboard\local\source\pipeline;
 
 /**
@@ -69,12 +69,7 @@ class get_chart_data extends external_api {
                 VALUE_DEFAULT,
                 []
             ),
-            'colors' => new external_multiple_structure(
-                new external_value(PARAM_TEXT, 'CSS colour'),
-                'Colour palette override',
-                VALUE_DEFAULT,
-                []
-            ),
+            'chartid' => new external_value(PARAM_ALPHANUMEXT, 'Stable chart id for per-chart settings', VALUE_DEFAULT, ''),
             'title' => new external_value(PARAM_TEXT, 'Chart title', VALUE_DEFAULT, ''),
             'centertext' => new external_value(PARAM_BOOL, 'Show doughnut centre text', VALUE_DEFAULT, true),
         ]);
@@ -87,7 +82,7 @@ class get_chart_data extends external_api {
      * @param string $type
      * @param array $sourceparams
      * @param array $filtervalues
-     * @param array $colors
+     * @param string $chartid
      * @param string $title
      * @return array
      */
@@ -96,7 +91,7 @@ class get_chart_data extends external_api {
         string $type,
         array $sourceparams = [],
         array $filtervalues = [],
-        array $colors = [],
+        string $chartid = '',
         string $title = '',
         bool $centertext = true
     ): array {
@@ -105,7 +100,7 @@ class get_chart_data extends external_api {
             'type' => $type,
             'sourceparams' => $sourceparams,
             'filtervalues' => $filtervalues,
-            'colors' => $colors,
+            'chartid' => $chartid,
             'title' => $title,
             'centertext' => $centertext,
         ]);
@@ -117,8 +112,9 @@ class get_chart_data extends external_api {
         // the FULL chart config.
         $dto = pipeline::fetch($params['source'], $params['sourceparams'], $params['filtervalues']);
 
-        // Author-supplied colours (color1..) win; otherwise use the active palette's scheme.
-        $colors = !empty($params['colors']) ? $params['colors'] : palette_manager::colors();
+        // Per-chart stored overrides (set via the settings gear) merged over the
+        // active palette; unset slots follow the palette.
+        $colors = chart_settings::resolve($params['chartid']);
 
         $config = (new chart_director())->build($params['type'], $dto, [
             'colors' => $colors,
