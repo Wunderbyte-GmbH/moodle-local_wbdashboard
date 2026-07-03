@@ -48,7 +48,7 @@ class shortcodes {
     public static function chart($shortcode, $args, $content, $env, $next): string {
         global $OUTPUT;
 
-        $definition = chart_definition::from_shortcode_args($args);
+        $definition = chart_definition::create_defintion_from_shortcode_args($args);
         if (!source_registry::exists($definition->source)) {
             return get_string('error:unknownsource', 'local_wb_dashboard', s($definition->source));
         }
@@ -56,45 +56,25 @@ class shortcodes {
             return get_string('error:unknowncharttype', 'local_wb_dashboard', s($definition->type));
         }
 
-        $ctx = $env->context ?? \context_system::instance();
-        $chartid = self::chartid($definition, (int)$ctx->id);
+        $envcontext = $env->context;
+        $chartid = $definition->create_chartid((int)$envcontext->id);
 
         $wsargs = $definition->to_wsargs();
         $wsargs['chartid'] = $chartid;
-        $title = $definition->displayopts['title'] ?? '';
 
         $context = [
             'canvasid' => html_writer::random_id('local-dashboard-chart-'),
             'chartid' => $chartid,
-            'title' => $title !== '' ? $title : get_string('pluginname', 'local_wb_dashboard'),
+            'title' => $wsargs['title'],
             'width' => $definition->displayopts['width'] ?? 32.0,
             'height' => $definition->displayopts['height'] ?? 20.0,
             'pageid' => $definition->pageid,
             'consumes' => json_encode($definition->consumesfilters),
             'wsargs' => json_encode($wsargs),
             'palettename' => palette_manager::name(),
-            'cansettings' => has_capability('local/wb_dashboard:configurecharts', $ctx),
+            'cansettings' => has_capability('local/wb_dashboard:configurecharts', $envcontext),
         ];
-
         return $OUTPUT->render_from_template('local_wb_dashboard/chart', $context);
-    }
-
-    /**
-     * Resolve the stable chart id for a definition in a context, disambiguating
-     * identical charts on the same rendered page with an occurrence suffix.
-     *
-     * @param chart_definition $definition
-     * @param int $contextid
-     * @return string
-     */
-    private static function chartid(chart_definition $definition, int $contextid): string {
-        static $seen = [];
-
-        $base = $definition->chartid_base($contextid);
-        $occurrence = $seen[$base] ?? 0;
-        $seen[$base] = $occurrence + 1;
-
-        return $occurrence === 0 ? $base : $base . '-' . $occurrence;
     }
 
     /**
@@ -111,7 +91,7 @@ class shortcodes {
         global $OUTPUT, $PAGE;
 
         $args = (array)$args;
-        $definition = filter_definition::from_shortcode_args($args);
+        $definition = filter_definition::create_defintion_from_shortcode_args($args);
 
         if ($definition->key === '') {
             return get_string('error:missingfilterkey', 'local_wb_dashboard');
@@ -162,7 +142,7 @@ class shortcodes {
         global $OUTPUT;
 
         $args = (array)$args;
-        $definition = digits_definition::from_shortcode_args($args);
+        $definition = digits_definition::create_defintion_from_shortcode_args($args);
 
         if ($definition->source === '') {
             return get_string('error:missingsource', 'local_wb_dashboard');

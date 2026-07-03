@@ -63,7 +63,7 @@ class filter_definition {
      * @param array $args
      * @return self
      */
-    public static function from_shortcode_args(array $args): self {
+    public static function create_defintion_from_shortcode_args(array $args): self {
         $key = isset($args['key']) ? clean_param($args['key'], PARAM_ALPHANUMEXT) : '';
         $type = isset($args['type']) ? clean_param($args['type'], PARAM_ALPHA) : 'text';
         $pageid = isset($args['pageid']) ? clean_param($args['pageid'], PARAM_ALPHANUMEXT) : 'default';

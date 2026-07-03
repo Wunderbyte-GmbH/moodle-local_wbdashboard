@@ -86,7 +86,7 @@ class chart_definition {
      * @param array $args
      * @return self
      */
-    public static function from_shortcode_args(array $args): self {
+    public static function create_defintion_from_shortcode_args(array $args): self {
         $source = isset($args['source']) ? clean_param($args['source'], PARAM_ALPHANUMEXT) : '';
         $type = isset($args['type']) ? clean_param($args['type'], PARAM_ALPHA) : 'bar';
         $pageid = isset($args['pageid']) ? clean_param($args['pageid'], PARAM_ALPHANUMEXT) : 'default';
@@ -152,6 +152,27 @@ class chart_definition {
     }
 
     /**
+     * Resolve the stable chart id for this definition in a context, disambiguating
+     * identical charts on the same rendered page with an occurrence suffix.
+     *
+     * The occurrence counter is kept across all calls within a single request, so
+     * two identical charts in the same content receive distinct ids ("base",
+     * "base-1", ...).
+     *
+     * @param int $contextid The context the chart is rendered in.
+     * @return string
+     */
+    public function create_chartid(int $contextid): string {
+        static $seen = [];
+
+        $base = $this->chartid_base($contextid);
+        $occurrence = $seen[$base] ?? 0;
+        $seen[$base] = $occurrence + 1;
+
+        return $occurrence === 0 ? $base : $base . '-' . $occurrence;
+    }
+
+    /**
      * Serialize the parts the JS needs to ship to the web service.
      *
      * sourceparams are sent as a name/value list because keys vary per source.
@@ -168,7 +189,7 @@ class chart_definition {
             'type'         => $this->type,
             'pageid'       => $this->pageid,
             'sourceparams' => $pairs,
-            'title'        => $this->displayopts['title'] ?? '',
+            'title'        => $this->displayopts['title'] ?? get_string('chart', 'local_wbdashboard'),
             'centertext'   => $this->displayopts['centertext'] ?? true,
         ];
     }

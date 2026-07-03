@@ -85,7 +85,7 @@ class digits_definition {
      * @param array $args
      * @return self
      */
-    public static function from_shortcode_args(array $args): self {
+    public static function create_defintion_from_shortcode_args(array $args): self {
         $source = isset($args['source']) ? clean_param($args['source'], PARAM_ALPHANUMEXT) : '';
         $display = isset($args['display']) ? clean_param($args['display'], PARAM_ALPHA) : digits_reducer::MODE_NUMBER;
         $pageid = isset($args['pageid']) ? clean_param($args['pageid'], PARAM_ALPHANUMEXT) : 'default';

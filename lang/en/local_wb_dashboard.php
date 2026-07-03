@@ -25,6 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['cachedef_pagefilterstate'] = 'Per-user page filter state';
+$string['chart'] = 'Chart';
 $string['chartsettings:colourslot'] = 'Colour {$a}';
 $string['chartsettings:gear'] = 'Colour settings';
 $string['chartsettings:intro'] = 'Choose which palette colour each slot uses. Slots left on their default keep following the active palette.';
