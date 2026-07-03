@@ -33,7 +33,7 @@ class filter_factory {
      * @return bool
      */
     public static function exists(string $type): bool {
-        return in_array($type, ['select', 'date', 'text', 'number'], true);
+        return in_array($type, ['select', 'date', 'text', 'number', 'map'], true);
     }
 
     /**
@@ -51,6 +51,7 @@ class filter_factory {
             'date'   => new date_filter($key, $config),
             'text'   => new text_filter($key, $config),
             'number' => new number_filter($key, $config),
+            'map'    => new map_filter($key, $config),
             default  => throw new moodle_exception('error:unknownfiltertype', 'local_wb_dashboard', '', $type),
         };
     }

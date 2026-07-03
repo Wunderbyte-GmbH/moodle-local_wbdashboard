@@ -70,6 +70,23 @@
     {{#isnumber}}
         <input type="number" id="{{id}}" class="form-control" value="{{value}}" data-filter-control="1">
     {{/isnumber}}
+    {{#ismap}}
+        <input type="hidden" id="{{id}}" value="{{value}}" data-filter-control="1">
+        <p class="wb-region-readout" aria-live="polite" data-region="readout"
+           data-emptytext="{{#str}}mapfilter:noregion, local_wb_dashboard{{/str}}">
+            {{#value}}{{value}}{{/value}}{{^value}}{{#str}}mapfilter:noregion, local_wb_dashboard{{/str}}{{/value}}
+        </p>
+        <div class="wb-region-map">
+            <svg viewBox="{{viewbox}}" role="group" aria-label="{{#str}}mapfilter:maplabel, local_wb_dashboard{{/str}}">
+                {{#regions}}
+                    <path class="wb-region{{#selected}} selected{{/selected}}" d="{{d}}"
+                          data-value="{{value}}" data-name="{{name}}"
+                          tabindex="0" role="button" aria-label="{{name}}"
+                          aria-pressed="{{#selected}}true{{/selected}}{{^selected}}false{{/selected}}"></path>
+                {{/regions}}
+            </svg>
+        </div>
+    {{/ismap}}
 </div>
 
 {{^islocked}}
@@ -77,5 +94,10 @@
 require(['local_wb_dashboard/filterbus'], function(filterbus) {
     filterbus.registerControl({{#quote}}{{id}}{{/quote}});
 });
+{{#ismap}}
+require(['local_wb_dashboard/regionmap'], function(regionmap) {
+    regionmap.init({{#quote}}{{id}}{{/quote}});
+});
+{{/ismap}}
 {{/js}}
 {{/islocked}}

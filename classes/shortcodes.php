@@ -140,6 +140,13 @@ class shortcodes {
                 unset($option);
             }
         }
+        // Reflect the prefilled value into the active map region.
+        if (!empty($context['regions'])) {
+            foreach ($context['regions'] as &$region) {
+                $region['selected'] = ((string)$region['value'] === (string)$context['value']);
+            }
+            unset($region);
+        }
 
         $context['pageid'] = $definition->pageid;
         $context['palettename'] = palette_manager::name();

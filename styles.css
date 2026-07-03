@@ -5,9 +5,56 @@
  * standard palette (wbdashboardpalette_standard) reproduces the plugin's built-in look.
  * See docs/architecture.md and docs/shortcodes.md. */
 
-/* Structural (non-branding) layout for the per-chart settings toolbar. */
-.local-dashboard-chart-toolbar {
-    display: flex;
-    justify-content: flex-end;
+/* Structural, palette-neutral styling for the map filter control. Colours are
+ * exposed as CSS custom properties so a palette can override them; the fallbacks
+ * keep the control usable on its own. Everything is scoped to the map so it
+ * cannot leak into the rest of the dashboard. */
+.wb-region-map {
+    --wb-region-fill: #f3ecdb;
+    --wb-region-line: #c3b79b;
+    --wb-region-hover: #e5b45b;
+    --wb-region-selected: #6f8f7d;
+    max-width: 760px;
 }
 
+.wb-region-map svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+.wb-region-map .wb-region {
+    fill: var(--wb-region-fill);
+    stroke: var(--wb-region-line);
+    stroke-width: 1;
+    stroke-linejoin: round;
+    cursor: pointer;
+    outline: none;
+    transition: fill 0.18s ease;
+}
+
+.wb-region-map .wb-region:hover,
+.wb-region-map .wb-region:focus {
+    fill: var(--wb-region-hover);
+}
+
+.wb-region-map .wb-region:focus-visible {
+    stroke: var(--wb-region-selected);
+    stroke-width: 2;
+}
+
+.wb-region-map .wb-region.selected {
+    fill: var(--wb-region-selected);
+}
+
+.wb-region-readout {
+    margin: 0 0 0.5rem;
+    min-height: 1.5em;
+    color: #8a8069;
+}
+
+.wb-region-readout.active {
+    color: inherit;
+    font-weight: 600;
+}
