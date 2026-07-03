@@ -140,6 +140,24 @@ class bar_chart_builder extends chart_builder {
     }
 
     #[\Override]
+    protected function map_series_to_dataset(chart_series $series, int $index): array {
+        // A single, non-stacked/non-progress bar series is a categorical comparison
+        // (one bar per category): colour each bar with the next palette colour,
+        // mirroring the doughnut. Grouped/stacked charts keep one colour per series.
+        if (
+            !$this->stacked && !$this->progress
+            && count($this->series) === 1 && count($series->data) > 1
+        ) {
+            return [
+                'label' => $series->label,
+                'data' => $series->data,
+                'backgroundColor' => $this->resolve_point_colors($series, count($series->data)),
+            ];
+        }
+        return parent::map_series_to_dataset($series, $index);
+    }
+
+    #[\Override]
     protected function prepare_render_series(): array {
         // Progress: turn one multi-point series into one single-category bar with
         // one stacked segment (dataset) per point.

@@ -59,6 +59,44 @@ final class chart_director_test extends \advanced_testcase {
         return $dto;
     }
 
+    /**
+     * A single-series categorical DTO, as produced by multi-report totals
+     * (reportbuilder_source::fetch_report_totals): one bar per report.
+     *
+     * @return chart_data
+     */
+    private function single_series_dto(): chart_data {
+        $dto = new chart_data();
+        $dto->set_labels(['R6', 'R3', 'R8']);
+        $dto->add_series(new chart_series('Count', [5.0, 3.0, 8.0]));
+        return $dto;
+    }
+
+    public function test_horizontalbar_single_series_colours_each_bar(): void {
+        $config = (new chart_director())->build('horizontalbar', $this->single_series_dto());
+        $out = $config->jsonSerialize();
+
+        // One dataset, but per-bar colours (an array) so each bar takes the next
+        // palette colour instead of all sharing palette[0].
+        $this->assertCount(1, $out['data']['datasets']);
+        $colors = $out['data']['datasets'][0]['backgroundColor'];
+        $this->assertIsArray($colors);
+        $this->assertCount(3, $colors);
+        // Three distinct consecutive palette colours.
+        $this->assertSame(3, count(array_unique($colors)));
+    }
+
+    public function test_horizontalbar_single_series_honours_supplied_colours(): void {
+        $config = (new chart_director())->build(
+            'horizontalbar',
+            $this->single_series_dto(),
+            ['colors' => ['#111', '#222', '#333']]
+        );
+        $out = $config->jsonSerialize();
+
+        $this->assertSame(['#111', '#222', '#333'], $out['data']['datasets'][0]['backgroundColor']);
+    }
+
     public function test_doughnut_builds_full_config(): void {
         $config = (new chart_director())->build('doughnut', $this->doughnut_dto(), ['colors' => ['#111', '#222']]);
         $out = $config->jsonSerialize();
@@ -79,6 +117,9 @@ final class chart_director_test extends \advanced_testcase {
         $this->assertSame('bar', $out['type']);
         $this->assertSame('y', $out['options']['indexAxis']);
         $this->assertCount(2, $out['data']['datasets']);
+        // Multi-series bars keep one colour per series (a string, not an array).
+        $this->assertIsString($out['data']['datasets'][0]['backgroundColor']);
+        $this->assertIsString($out['data']['datasets'][1]['backgroundColor']);
     }
 
     public function test_stackedbar_stacks_and_keeps_groups(): void {
