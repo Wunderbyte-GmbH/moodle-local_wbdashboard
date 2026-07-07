@@ -23,6 +23,7 @@ use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
 use local_wb_dashboard\local\digits\digits_reducer;
+use local_wb_dashboard\local\digits\digits_result;
 use local_wb_dashboard\local\source\pipeline;
 use moodle_exception;
 
@@ -112,8 +113,18 @@ class get_digits_data extends external_api {
         }
 
         // Same server pipeline as charts, then collapse the DTO to one value.
-        $dto = pipeline::fetch($params['source'], $params['sourceparams'], $params['filtervalues']);
-        $result = digits_reducer::reduce($dto, $params['display']);
+        // A report that ran but matched no rows is a legitimate zero for a
+        // single-value field, not an error (unlike a chart, which has nothing
+        // to draw).
+        try {
+            $dto = pipeline::fetch($params['source'], $params['sourceparams'], $params['filtervalues']);
+            $result = digits_reducer::reduce($dto, $params['display']);
+        } catch (moodle_exception $e) {
+            if ($e->errorcode !== 'error:noreportdata') {
+                throw $e;
+            }
+            $result = new digits_result(0.0, $params['display'] === digits_reducer::MODE_PERCENT, '');
+        }
 
         $decimals = max(0, min(6, $params['decimals']));
         $displaylabel = $params['label'] !== '' ? $params['label'] : $result->label;

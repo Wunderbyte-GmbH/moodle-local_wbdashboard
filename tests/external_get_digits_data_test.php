@@ -16,6 +16,7 @@
 
 namespace local_wb_dashboard;
 
+use core_course\reportbuilder\datasource\courses;
 use core_reportbuilder\generator;
 use core_user\reportbuilder\datasource\users;
 use local_wb_dashboard\external\get_digits_data;
@@ -146,6 +147,77 @@ final class external_get_digits_data_test extends \advanced_testcase {
         );
 
         $this->assertSame('Active users', $result['label']);
+    }
+
+    public function test_empty_report_returns_zero(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        /** @var generator $rbgenerator */
+        $rbgenerator = $this->getDataGenerator()->get_plugin_generator('core_reportbuilder');
+        // No courses exist, so the report runs but matches no rows.
+        $report = $rbgenerator->create_report(['name' => 'Courses', 'source' => courses::class, 'default' => 0]);
+        $rbgenerator->create_column(['reportid' => $report->get('id'), 'uniqueidentifier' => 'course:fullname']);
+
+        $result = get_digits_data::execute(
+            'reportbuilder',
+            'count',
+            $this->pairs([
+                'report' => $report->get('id'),
+                'categoryfield' => 'course:fullname',
+                'aggregation' => 'count',
+            ])
+        );
+
+        $this->assertFalse($result['ispercent']);
+        $this->assertSame(0.0, $result['value']);
+    }
+
+    public function test_empty_report_returns_zero_percent(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        /** @var generator $rbgenerator */
+        $rbgenerator = $this->getDataGenerator()->get_plugin_generator('core_reportbuilder');
+        // No courses exist, so the delta's base report matches no rows.
+        $report = $rbgenerator->create_report(['name' => 'Courses', 'source' => courses::class, 'default' => 0]);
+        $rbgenerator->create_column(['reportid' => $report->get('id'), 'uniqueidentifier' => 'course:fullname']);
+
+        $result = get_digits_data::execute(
+            'reportbuilder',
+            'percent',
+            $this->pairs([
+                'idbase' => $report->get('id'),
+                'fieldbase' => 'course:fullname',
+                'idtotal' => $report->get('id'),
+                'fieldtotal' => 'course:fullname',
+            ])
+        );
+
+        $this->assertTrue($result['ispercent']);
+        $this->assertSame(0.0, $result['value']);
+        $this->assertStringEndsWith('%', $result['formatted']);
+    }
+
+    public function test_delta_without_field_params_throws(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        /** @var generator $rbgenerator */
+        $rbgenerator = $this->getDataGenerator()->get_plugin_generator('core_reportbuilder');
+        $report = $rbgenerator->create_report(['name' => 'Users', 'source' => users::class, 'default' => 0]);
+        $rbgenerator->create_column(['reportid' => $report->get('id'), 'uniqueidentifier' => 'user:fullname']);
+
+        $this->expectException(\moodle_exception::class);
+        $this->expectExceptionMessage('fieldbase');
+        get_digits_data::execute(
+            'reportbuilder',
+            'percent',
+            $this->pairs([
+                'idbase' => $report->get('id'),
+                'idtotal' => $report->get('id'),
+            ])
+        );
     }
 
     public function test_unknown_display_mode_throws(): void {

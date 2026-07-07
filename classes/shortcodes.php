@@ -48,7 +48,7 @@ class shortcodes {
     public static function chart($shortcode, $args, $content, $env, $next): string {
         global $OUTPUT;
 
-        $definition = chart_definition::create_defintion_from_shortcode_args($args);
+        $definition = chart_definition::create_definition_from_shortcode_args($args);
         if (!source_registry::exists($definition->source)) {
             return get_string('error:unknownsource', 'local_wb_dashboard', s($definition->source));
         }
@@ -66,8 +66,8 @@ class shortcodes {
             'canvasid' => html_writer::random_id('local-dashboard-chart-'),
             'chartid' => $chartid,
             'title' => $wsargs['title'],
-            'width' => $definition->displayopts['width'] ?? 32.0,
-            'height' => $definition->displayopts['height'] ?? 20.0,
+            'width' => $definition->displayopts['width'],
+            'height' => $definition->displayopts['height'],
             'pageid' => $definition->pageid,
             'consumes' => json_encode($definition->consumesfilters),
             'wsargs' => json_encode($wsargs),
@@ -91,7 +91,7 @@ class shortcodes {
         global $OUTPUT, $PAGE;
 
         $args = (array)$args;
-        $definition = filter_definition::create_defintion_from_shortcode_args($args);
+        $definition = filter_definition::create_definition_from_shortcode_args($args);
 
         if ($definition->key === '') {
             return get_string('error:missingfilterkey', 'local_wb_dashboard');
@@ -142,7 +142,7 @@ class shortcodes {
         global $OUTPUT;
 
         $args = (array)$args;
-        $definition = digits_definition::create_defintion_from_shortcode_args($args);
+        $definition = digits_definition::create_definition_from_shortcode_args($args);
 
         if ($definition->source === '') {
             return get_string('error:missingsource', 'local_wb_dashboard');

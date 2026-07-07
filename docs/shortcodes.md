@@ -184,6 +184,9 @@ all work exactly as they do for `[chart]`.
 
   Division by zero yields `0`.
 
+A report that runs but matches no rows renders as `0` (or `0%`) — unlike a chart,
+which reports an error because it has nothing to draw.
+
 ### Examples
 
 ```

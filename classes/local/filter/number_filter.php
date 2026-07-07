@@ -32,11 +32,6 @@ class number_filter extends base_filter {
     }
 
     #[\Override]
-    public function get_template(): string {
-        return 'local_wb_dashboard/filter_number';
-    }
-
-    #[\Override]
     public function normalize_value($raw) {
         if ($raw === '' || $raw === null) {
             return null;

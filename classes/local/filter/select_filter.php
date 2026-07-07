@@ -33,11 +33,6 @@ class select_filter extends base_filter {
     }
 
     #[\Override]
-    public function get_template(): string {
-        return 'local_wb_dashboard/filter_select';
-    }
-
-    #[\Override]
     public function export_for_template(renderer_base $output): array {
         $context = parent::export_for_template($output);
         $default = $this->get_default();

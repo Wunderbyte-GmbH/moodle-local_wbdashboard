@@ -86,7 +86,7 @@ class chart_definition {
      * @param array $args
      * @return self
      */
-    public static function create_defintion_from_shortcode_args(array $args): self {
+    public static function create_definition_from_shortcode_args(array $args): self {
         $source = isset($args['source']) ? clean_param($args['source'], PARAM_ALPHANUMEXT) : '';
         $type = isset($args['type']) ? clean_param($args['type'], PARAM_ALPHA) : 'bar';
         $pageid = isset($args['pageid']) ? clean_param($args['pageid'], PARAM_ALPHANUMEXT) : 'default';
@@ -189,7 +189,7 @@ class chart_definition {
             'type'         => $this->type,
             'pageid'       => $this->pageid,
             'sourceparams' => $pairs,
-            'title'        => $this->displayopts['title'] ?? get_string('chart', 'local_wbdashboard'),
+            'title'        => $this->displayopts['title'] ?? get_string('chart', 'local_wb_dashboard'),
             'centertext'   => $this->displayopts['centertext'] ?? true,
         ];
     }

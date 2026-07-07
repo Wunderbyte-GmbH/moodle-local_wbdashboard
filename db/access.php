@@ -28,14 +28,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
-    'local/wb_dashboard:view' => [
-        'captype'      => 'read',
-        'contextlevel' => CONTEXT_SYSTEM,
-        'archetypes'   => [
-            'user' => CAP_ALLOW,
-        ],
-    ],
-
     // Configure per-chart colour overrides via the chart settings gear. This is
     // authoring config shared by all viewers, so it is limited to managers.
     'local/wb_dashboard:configurecharts' => [

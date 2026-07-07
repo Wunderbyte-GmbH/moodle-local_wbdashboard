@@ -54,6 +54,12 @@ class two_report_delta_shaping implements shaping_strategy {
      */
     #[\Override]
     public function shape(shapable_source $source, array $params, array $constraints): chart_data {
+        foreach (['fieldbase', 'fieldtotal'] as $required) {
+            if (empty($params[$required])) {
+                throw new moodle_exception('error:missingparam', 'local_wb_dashboard', '', $required);
+            }
+        }
+
         $base = $this->extract_value($source, (int)$params['idbase'], (string)$params['fieldbase'], $constraints);
         $total = $this->extract_value($source, (int)$params['idtotal'], (string)$params['fieldtotal'], $constraints);
         $remaining = max(0.0, $total - $base);

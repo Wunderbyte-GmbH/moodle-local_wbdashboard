@@ -165,7 +165,10 @@ const createController = (canvas) => {
                 draw(JSON.parse(result.payload));
                 return null;
             })
-            .catch(Notification.exception);
+            .catch((error) => {
+                setBusy(false);
+                Notification.exception(error);
+            });
     };
 
     return {reload: reload, consumes: consumes, chartid: wsargs.chartid || ''};

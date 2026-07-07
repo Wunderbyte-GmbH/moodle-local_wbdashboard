@@ -62,17 +62,6 @@ class bar_chart_builder extends chart_builder {
     }
 
     /**
-     * Fix the value-axis maximum (used to fake a progress bar).
-     *
-     * @param float|null $max
-     * @return static
-     */
-    public function set_axis_max(?float $max): static {
-        $this->axismax = $max;
-        return $this;
-    }
-
-    /**
      * Enable progress mode (a single multi-point series becomes stacked segments
      * of one bar with a fixed maximum).
      *

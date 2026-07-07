@@ -84,6 +84,7 @@ class get_chart_data extends external_api {
      * @param array $filtervalues
      * @param string $chartid
      * @param string $title
+     * @param bool $centertext
      * @return array
      */
     public static function execute(

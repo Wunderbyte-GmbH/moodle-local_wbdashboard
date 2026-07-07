@@ -28,7 +28,7 @@ use local_wb_dashboard\local\definition\digits_definition;
  */
 final class digits_definition_test extends \basic_testcase {
     public function test_reserved_keys_are_split_from_source_params(): void {
-        $def = digits_definition::create_defintion_from_shortcode_args([
+        $def = digits_definition::create_definition_from_shortcode_args([
             'source' => 'reportbuilder',
             'display' => 'percent',
             'label' => 'Completed',
@@ -52,7 +52,7 @@ final class digits_definition_test extends \basic_testcase {
     }
 
     public function test_defaults(): void {
-        $def = digits_definition::create_defintion_from_shortcode_args(['source' => 'reportbuilder']);
+        $def = digits_definition::create_definition_from_shortcode_args(['source' => 'reportbuilder']);
 
         $this->assertSame('number', $def->display);
         $this->assertSame('default', $def->pageid);
@@ -63,18 +63,18 @@ final class digits_definition_test extends \basic_testcase {
     public function test_domid_is_deterministic_and_prefixed(): void {
         $args = ['source' => 'reportbuilder', 'display' => 'count', 'reports' => '3'];
 
-        $a = digits_definition::create_defintion_from_shortcode_args($args)->to_domid();
-        $b = digits_definition::create_defintion_from_shortcode_args($args)->to_domid();
+        $a = digits_definition::create_definition_from_shortcode_args($args)->to_domid();
+        $b = digits_definition::create_definition_from_shortcode_args($args)->to_domid();
 
         $this->assertSame($a, $b);
         $this->assertStringStartsWith('local-dashboard-digits-', $a);
     }
 
     public function test_domid_ignores_source_param_order(): void {
-        $one = digits_definition::create_defintion_from_shortcode_args(
+        $one = digits_definition::create_definition_from_shortcode_args(
             ['source' => 'reportbuilder', 'idbase' => '1', 'idtotal' => '2']
         )->to_domid();
-        $two = digits_definition::create_defintion_from_shortcode_args(
+        $two = digits_definition::create_definition_from_shortcode_args(
             ['source' => 'reportbuilder', 'idtotal' => '2', 'idbase' => '1']
         )->to_domid();
 
@@ -82,10 +82,10 @@ final class digits_definition_test extends \basic_testcase {
     }
 
     public function test_domid_differs_by_configuration(): void {
-        $count = digits_definition::create_defintion_from_shortcode_args(
+        $count = digits_definition::create_definition_from_shortcode_args(
             ['source' => 'reportbuilder', 'display' => 'count', 'reports' => '3']
         )->to_domid();
-        $percent = digits_definition::create_defintion_from_shortcode_args(
+        $percent = digits_definition::create_definition_from_shortcode_args(
             ['source' => 'reportbuilder', 'display' => 'percent', 'reports' => '3']
         )->to_domid();
 

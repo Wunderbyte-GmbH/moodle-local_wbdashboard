@@ -33,11 +33,6 @@ class text_filter extends base_filter {
     }
 
     #[\Override]
-    public function get_template(): string {
-        return 'local_wb_dashboard/filter_text';
-    }
-
-    #[\Override]
     public function normalize_value($raw) {
         return trim(clean_param((string)$raw, PARAM_TEXT));
     }

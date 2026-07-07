@@ -28,7 +28,7 @@ use local_wb_dashboard\local\definition\chart_definition;
  */
 final class chart_definition_test extends \advanced_testcase {
     public function test_colour_args_are_ignored(): void {
-        $definition = chart_definition::create_defintion_from_shortcode_args([
+        $definition = chart_definition::create_definition_from_shortcode_args([
             'source' => 'reportbuilder',
             'type' => 'bar',
             'report' => '3',
@@ -47,8 +47,8 @@ final class chart_definition_test extends \advanced_testcase {
 
     public function test_chartid_is_deterministic(): void {
         $args = ['source' => 'reportbuilder', 'type' => 'bar', 'report' => '3'];
-        $a = chart_definition::create_defintion_from_shortcode_args($args)->chartid_base(42);
-        $b = chart_definition::create_defintion_from_shortcode_args($args)->chartid_base(42);
+        $a = chart_definition::create_definition_from_shortcode_args($args)->chartid_base(42);
+        $b = chart_definition::create_definition_from_shortcode_args($args)->chartid_base(42);
 
         $this->assertSame($a, $b);
         $this->assertMatchesRegularExpression('/^c[0-9a-f]{12}$/', $a);
@@ -56,16 +56,16 @@ final class chart_definition_test extends \advanced_testcase {
 
     public function test_chartid_namespaced_by_context(): void {
         $args = ['source' => 'reportbuilder', 'type' => 'bar', 'report' => '3'];
-        $incontext1 = chart_definition::create_defintion_from_shortcode_args($args)->chartid_base(1);
-        $incontext2 = chart_definition::create_defintion_from_shortcode_args($args)->chartid_base(2);
+        $incontext1 = chart_definition::create_definition_from_shortcode_args($args)->chartid_base(1);
+        $incontext2 = chart_definition::create_definition_from_shortcode_args($args)->chartid_base(2);
 
         $this->assertNotSame($incontext1, $incontext2);
     }
 
     public function test_chartid_ignores_cosmetic_opts(): void {
         $base = ['source' => 'reportbuilder', 'type' => 'bar', 'report' => '3'];
-        $plain = chart_definition::create_defintion_from_shortcode_args($base)->chartid_base(7);
-        $decorated = chart_definition::create_defintion_from_shortcode_args(
+        $plain = chart_definition::create_definition_from_shortcode_args($base)->chartid_base(7);
+        $decorated = chart_definition::create_definition_from_shortcode_args(
             $base + ['title' => 'Renamed', 'width' => '50', 'height' => '10']
         )->chartid_base(7);
 
@@ -74,10 +74,10 @@ final class chart_definition_test extends \advanced_testcase {
     }
 
     public function test_chartid_changes_with_data_params(): void {
-        $three = chart_definition::create_defintion_from_shortcode_args(
+        $three = chart_definition::create_definition_from_shortcode_args(
             ['source' => 'reportbuilder', 'type' => 'bar', 'report' => '3']
         )->chartid_base(7);
-        $four = chart_definition::create_defintion_from_shortcode_args(
+        $four = chart_definition::create_definition_from_shortcode_args(
             ['source' => 'reportbuilder', 'type' => 'bar', 'report' => '4']
         )->chartid_base(7);
 

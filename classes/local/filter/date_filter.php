@@ -34,11 +34,6 @@ class date_filter extends base_filter {
     }
 
     #[\Override]
-    public function get_template(): string {
-        return 'local_wb_dashboard/filter_date';
-    }
-
-    #[\Override]
     public function normalize_value($raw) {
         $raw = trim((string)$raw);
         if ($raw === '') {

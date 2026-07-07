@@ -28,6 +28,12 @@ namespace local_wb_dashboard\local\filter;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class page_filter_state {
+    /** Maximum number of filter keys stored per page (the WS input is user-controlled). */
+    private const MAX_KEYS = 50;
+
+    /** Maximum stored length of a single filter value. */
+    private const MAX_VALUE_LENGTH = 1333;
+
     /**
      * Build the cache key for a user + page.
      *
@@ -76,7 +82,9 @@ class page_filter_state {
     /**
      * Persist the key => value map for a page (current user).
      *
-     * Keys are cleaned to alphanumext; values are stored as raw strings.
+     * Keys are cleaned to alphanumext; values are stored as raw strings. The
+     * input comes straight from a web service any logged-in user can call, so
+     * the number of keys and the value length are capped.
      *
      * @param string $pageid
      * @param array $values
@@ -86,9 +94,12 @@ class page_filter_state {
         global $USER;
         $clean = [];
         foreach ($values as $key => $value) {
+            if (count($clean) >= self::MAX_KEYS) {
+                break;
+            }
             $key = clean_param((string)$key, PARAM_ALPHANUMEXT);
             if ($key !== '') {
-                $clean[$key] = (string)$value;
+                $clean[$key] = \core_text::substr((string)$value, 0, self::MAX_VALUE_LENGTH);
             }
         }
         self::cache()->set(self::cache_key((int)$USER->id, $pageid), $clean);

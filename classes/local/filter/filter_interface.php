@@ -45,13 +45,6 @@ interface filter_interface {
     public function get_type(): string;
 
     /**
-     * The mustache template that renders this control.
-     *
-     * @return string
-     */
-    public function get_template(): string;
-
-    /**
      * Context for rendering the control (label, options, current value, id, key, type).
      *
      * @param renderer_base $output

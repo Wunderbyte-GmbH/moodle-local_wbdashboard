@@ -25,8 +25,8 @@
 import ModalForm from 'core_form/modalform';
 import {getString} from 'core/str';
 
-/** Broadcast to charts when their stored colours change. */
-export const RELOAD_EVENT = 'local_wb_dashboard:chart-reload';
+/** Broadcast to charts when their stored colours change (listened for in chart.js). */
+const RELOAD_EVENT = 'local_wb_dashboard:chart-reload';
 
 const TRIGGER = '[data-action="chart-settings"]';
 
