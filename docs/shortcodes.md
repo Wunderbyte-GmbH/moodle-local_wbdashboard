@@ -46,9 +46,11 @@ default and can be individually recoloured through the per-chart settings gear (
 
 ## 2. Source: `reportbuilder`
 
-Pulls from a **core Report Builder** report. It has two shaping modes, chosen by
-which parameters you supply. Access is enforced per report: a viewer who lacks
-permission on a referenced report gets an error, not data.
+Pulls from a **core Report Builder** report. There are three shaping modes, chosen
+by which parameters you supply. (The modes themselves are shared by every source —
+future sources accept the same shaping parameters, with their own ids in place of
+report ids.) Access is enforced per report: a viewer who lacks permission on a
+referenced report gets an error, not data.
 
 ### Mode A — two-report delta (a value and its remainder)
 

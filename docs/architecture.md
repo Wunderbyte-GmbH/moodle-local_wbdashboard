@@ -17,6 +17,14 @@ that every chart and value on the page reacts to.
   constraints and return the `chart_data` DTO. Every display web service
   (`get_chart_data`, `get_digits_data`) runs this identical pipeline; only what it
   does with the DTO differs.
+- **Strategy (shaping)** — the shaping modes (rows, multi-dataset totals,
+  two-dataset delta) are **source-agnostic** `shaping_strategy` classes in
+  `local\source\shaping`; each owns its shaping logic and declares from the params
+  alone whether it applies. `shaper::shape()` walks them in priority order, so a
+  source's `fetch()` is one line. Strategies reach back into the source only
+  through the `shapable_source` data primitives (`load_rows` / `resolve_field` /
+  `get_dataset_label`) — a new source implements those three and every shaping
+  mode (and thus every chart type) works immediately, no shaping code of its own.
 - **Reducer** — for single-value fields, `local\digits\digits_reducer` collapses the
   same `chart_data` DTO to one `digits_result` (a number = sum of the series, or a
   percentage = base ÷ total from the two-report delta's `axismax`). The digits JS is
@@ -53,11 +61,13 @@ flowchart TD
   BUS --> WS["WS local_wb_dashboard_get_chart_data<br/>(definition + filtervalues)"]
   WS --> REG["source_registry::get(source)  (Factory)"]
   REG --> ACC["source-&gt;require_access()  (per-object authz)"]
-  ACC --> APPLY["source-&gt;fetch(params, constraints)<br/>applies filters NATIVELY"]
-  APPLY --> RB["reportbuilder: report's own filters"]
-  APPLY --> WB["wb_table: wb_table filter API (future)"]
-  APPLY --> SQL["sql: parameterized WHERE (future)"]
-  RB --> DTO["chart_data DTO (normalized)"]
+  ACC --> APPLY["source-&gt;fetch(params, constraints)<br/>= shaper::shape(this, params, constraints)"]
+  APPLY --> STRAT["shaper picks first shaping_strategy whose supports() matches  (Strategy)<br/>totals | delta | rows — the strategy owns the shaping logic"]
+  STRAT --> PRIM["shapable_source primitives<br/>load_rows / resolve_field / get_dataset_label<br/>applies filters NATIVELY"]
+  PRIM --> RB["reportbuilder: report's own filters"]
+  PRIM --> WB["wb_table: wb_table filter API (future)"]
+  PRIM --> SQL["sql: parameterized WHERE (future)"]
+  RB --> DTO["chart_data DTO (normalized, assembled by the strategy)"]
   WB --> DTO
   SQL --> DTO
   DTO --> BUILD["chart_director-&gt;build(type, dto, opts)  (Builder, PHP)<br/>concrete builder assembles FULL chart_config (sanitized JSON)<br/>doughnut | bar | horizontalbar | stackedbar | progress"]
