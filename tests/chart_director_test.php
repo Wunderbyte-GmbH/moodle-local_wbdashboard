@@ -61,7 +61,7 @@ final class chart_director_test extends \advanced_testcase {
 
     /**
      * A single-series categorical DTO, as produced by multi-report totals
-     * (reportbuilder_source::fetch_report_totals): one bar per report.
+     * (shaping\report_totals_shaping): one bar per report.
      *
      * @return chart_data
      */

@@ -14,19 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_wb_dashboard\local\source\sources\reportbuilder\shaping;
+namespace local_wb_dashboard\local\source\shaping;
 
 use local_wb_dashboard\local\dto\chart_data;
 use local_wb_dashboard\local\dto\filter_constraint;
-use local_wb_dashboard\local\source\sources\reportbuilder\reportbuilder_source;
+use local_wb_dashboard\local\source\shapable_source;
 
 /**
- * One way of shaping a Report Builder result into a chart_data DTO.
+ * One way of shaping a source's data into a chart_data DTO.
  *
- * Each strategy decides, from the source params alone, whether it applies, and
- * delegates the actual shaping to the matching method on reportbuilder_source.
- * reportbuilder_source::fetch() walks the strategies in priority order and hands
- * off to the first whose supports() returns true.
+ * Shared across all sources: each strategy decides, from the source params alone,
+ * whether it applies, and owns the shaping logic itself. It reaches back into the
+ * source only through the generic {@see shapable_source} data-access primitives
+ * (load_rows / resolve_field / get_dataset_label), so every shapable source
+ * supports every strategy. {@see shaper::shape()} walks the strategies in
+ * priority order and hands off to the first whose supports() returns true.
  *
  * @package    local_wb_dashboard
  * @copyright  2026 Wunderbyte GmbH
@@ -42,12 +44,12 @@ interface shaping_strategy {
     public function supports(array $params): bool;
 
     /**
-     * Shape the source's data, delegating to the matching reportbuilder_source method.
+     * Shape the source's data into a chart_data DTO.
      *
-     * @param reportbuilder_source $source
+     * @param shapable_source $source Data access into the source.
      * @param array $params Source params.
      * @param filter_constraint[] $constraints
      * @return chart_data
      */
-    public function shape(reportbuilder_source $source, array $params, array $constraints): chart_data;
+    public function shape(shapable_source $source, array $params, array $constraints): chart_data;
 }

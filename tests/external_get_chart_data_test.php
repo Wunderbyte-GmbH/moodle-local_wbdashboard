@@ -29,9 +29,9 @@ use local_wb_dashboard\local\settings\chart_settings;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \local_wb_dashboard\external\get_chart_data
  * @covers     \local_wb_dashboard\local\source\sources\reportbuilder\reportbuilder_source
- * @covers     \local_wb_dashboard\local\source\sources\reportbuilder\shaping\report_totals_shaping
- * @covers     \local_wb_dashboard\local\source\sources\reportbuilder\shaping\two_report_delta_shaping
- * @covers     \local_wb_dashboard\local\source\sources\reportbuilder\shaping\rows_shaping
+ * @covers     \local_wb_dashboard\local\source\shaping\report_totals_shaping
+ * @covers     \local_wb_dashboard\local\source\shaping\two_report_delta_shaping
+ * @covers     \local_wb_dashboard\local\source\shaping\rows_shaping
  */
 final class external_get_chart_data_test extends \advanced_testcase {
     /**
