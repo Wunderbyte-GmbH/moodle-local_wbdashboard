@@ -25,6 +25,15 @@
 defined('MOODLE_INTERNAL') || die();
 
 $definitions = [
+    // Dynamic select-filter options, keyed by a hash of source + params + field.
+    // Options are user-independent (access is checked before every read), but the
+    // fallback path runs a full report query, so results are shared and TTL-bound.
+    'filteroptions' => [
+        'mode'         => cache_store::MODE_APPLICATION,
+        'simplekeys'   => true,
+        'simpledata'   => false,
+        'ttl'          => 600,
+    ],
     // Per-user page filter state, keyed by "<userid>_<pageid>". Persists the last-used
     // filter selection across visits when the URL carries no state.
     'pagefilterstate' => [

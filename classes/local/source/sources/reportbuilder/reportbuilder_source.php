@@ -24,6 +24,7 @@ use core_reportbuilder\manager;
 use core_reportbuilder\permission;
 use local_wb_dashboard\local\dto\chart_data;
 use local_wb_dashboard\local\dto\filter_constraint;
+use local_wb_dashboard\local\source\option_provider_interface;
 use local_wb_dashboard\local\source\shapable_source;
 use local_wb_dashboard\local\source\shaping\shaper;
 
@@ -44,7 +45,10 @@ use local_wb_dashboard\local\source\shaping\shaper;
  * @copyright  2026 Wunderbyte GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class reportbuilder_source implements shapable_source {
+class reportbuilder_source implements shapable_source, option_provider_interface {
+    /** @var int Cap for options derived by scanning report rows. */
+    private const MAX_DYNAMIC_OPTIONS = 500;
+
     #[\Override]
     public static function get_name(): string {
         return 'reportbuilder';
@@ -75,6 +79,98 @@ class reportbuilder_source implements shapable_source {
             }
         }
         return array_values($keys);
+    }
+
+    #[\Override]
+    public function get_filter_options(array $sourceparams, string $field): array {
+        // Preferred: the report's own select filter declares its options. Those
+        // values are guaranteed to pass core's select-filter validation.
+        $options = [];
+        foreach ($this->report_ids($sourceparams) as $reportid) {
+            foreach ($this->declared_filter_options($reportid, $field) as $value => $label) {
+                $options[(string)$value] = format_string((string)$label);
+            }
+        }
+
+        if (empty($options)) {
+            // Fallback (e.g. text filters): distinct formatted values of the
+            // column in the report rows.
+            foreach ($this->report_ids($sourceparams) as $reportid) {
+                foreach ($this->distinct_column_values($reportid, $field) as $value) {
+                    $options[$value] = $value;
+                }
+            }
+            \core_collator::asort($options);
+        }
+
+        $result = [];
+        foreach ($options as $value => $label) {
+            $result[] = ['value' => (string)$value, 'label' => (string)$label];
+        }
+        return $result;
+    }
+
+    /**
+     * Options declared by the report's own filter for the given key, if that
+     * filter is (a subclass of) core's select filter.
+     *
+     * @param int $reportid
+     * @param string $field Logical filter key (full identifier or short name).
+     * @return array value => label ('' if the key maps to no select filter).
+     */
+    private function declared_filter_options(int $reportid, string $field): array {
+        $report = manager::get_report_from_id($reportid);
+        $needle = strtolower($field);
+
+        foreach ($report->get_active_filters() as $filter) {
+            $uid = $filter->get_unique_identifier();
+            $short = ($pos = strpos($uid, ':')) !== false ? substr($uid, $pos + 1) : $uid;
+            if (strtolower($uid) !== $needle && strtolower($short) !== $needle) {
+                continue;
+            }
+            if (!is_a($filter->get_filter_class(), select::class, true)) {
+                return [];
+            }
+            $options = (array)$filter->get_options();
+            // Flatten grouped (selectgroups-style) options.
+            if (count($options) !== count($options, COUNT_RECURSIVE)) {
+                $options = array_merge(...array_values($options));
+            }
+            return $options;
+        }
+        return [];
+    }
+
+    /**
+     * Distinct formatted values of one report column, capped.
+     *
+     * Formatted cell output may contain markup (e.g. linked names); tags are
+     * stripped so the option value matches what a text filter compares against.
+     *
+     * @param int $reportid
+     * @param string $field Logical field name.
+     * @return string[]
+     */
+    private function distinct_column_values(int $reportid, string $field): array {
+        $rows = (new reporthandler($reportid))->return_data();
+        if (empty($rows)) {
+            return [];
+        }
+
+        $rowkey = reporthandler::resolve_field_name($reportid, $field, (array)reset($rows));
+        $values = [];
+        foreach ($rows as $row) {
+            $row = (array)$row;
+            $value = trim(strip_tags((string)($row[$rowkey] ?? '')));
+            if ($value === '' || isset($values[$value])) {
+                continue;
+            }
+            $values[$value] = $value;
+            if (count($values) >= self::MAX_DYNAMIC_OPTIONS) {
+                break;
+            }
+        }
+        return array_values($values);
     }
 
     #[\Override]

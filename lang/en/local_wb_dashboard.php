@@ -24,6 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['cachedef_filteroptions'] = 'Dynamic filter dropdown options';
 $string['cachedef_pagefilterstate'] = 'Per-user page filter state';
 $string['chart'] = 'Chart';
 $string['chartsettings:colourslot'] = 'Colour {$a}';
