@@ -17,7 +17,10 @@
 namespace local_wb_dashboard\local\source;
 
 use local_wb_dashboard\local\dto\chart_data;
+use local_wb_dashboard\local\dto\filter_constraint;
 use local_wb_dashboard\local\filter\filter_factory;
+use local_wb_dashboard\local\filter\locked_filters;
+use moodle_exception;
 
 /**
  * The shared server-side data-acquisition pipeline.
@@ -56,12 +59,31 @@ class pipeline {
         // Real object-level authorization lives in the source.
         $source->require_access($cleanparams);
 
+        // Locked filter keys are forced server-side: whatever the client
+        // submitted for them is discarded below and the user's own profile
+        // field value is applied instead. They go first so that, if a
+        // same-key client constraint ever slipped through, the source's
+        // first-wins merge keeps the locked value.
+        $locked = locked_filters::for_current_user();
+        $constraints = [];
+        foreach ($locked as $key => $value) {
+            if ($value === '') {
+                // Locked, but no profile field value: fail closed, never unfiltered.
+                throw new moodle_exception('error:lockedfilternovalue', 'local_wb_dashboard', '', $key);
+            }
+            $constraints[] = new filter_constraint($key, filter_constraint::OP_EQUAL, $value, true);
+        }
+        // Sources map keys case-insensitively, so the client skip must be too.
+        $lockedlower = array_change_key_case($locked, CASE_LOWER);
+
         // Build neutral constraints from the submitted filter values, ignoring
         // keys this source cannot map.
         $supported = array_flip($source->get_supported_filter_keys($cleanparams));
-        $constraints = [];
         foreach ($filtervalues as $fv) {
             if ($fv['value'] === '' || !isset($supported[$fv['key']])) {
+                continue;
+            }
+            if (isset($lockedlower[\core_text::strtolower($fv['key'])])) {
                 continue;
             }
             if (!filter_factory::exists($fv['type'])) {

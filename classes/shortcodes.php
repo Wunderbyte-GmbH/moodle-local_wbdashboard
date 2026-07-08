@@ -23,6 +23,7 @@ use local_wb_dashboard\local\definition\digits_definition;
 use local_wb_dashboard\local\definition\filter_definition;
 use local_wb_dashboard\local\digits\digits_reducer;
 use local_wb_dashboard\local\filter\filter_factory;
+use local_wb_dashboard\local\filter\locked_filters;
 use local_wb_dashboard\local\filter\page_filter_state;
 use local_wb_dashboard\local\palette\palette_manager;
 use local_wb_dashboard\local\source\source_registry;
@@ -100,29 +101,53 @@ class shortcodes {
             return get_string('error:unknownfiltertype', 'local_wb_dashboard', s($definition->type));
         }
 
+        // A locked key is forced server-side to the user's profile field value
+        // (see locked_filters), so the user gets a static value instead of a
+        // control — or nothing at all with hidewhenlocked="1".
+        $lockedvalues = locked_filters::for_current_user();
+        $islocked = array_key_exists($definition->key, $lockedvalues);
+        if ($islocked && !empty($definition->config['hidewhenlocked'])) {
+            return '';
+        }
+
         $filter = filter_factory::create($definition->type, $definition->key, $definition->config);
         $context = $filter->export_for_template($PAGE->get_renderer('core'));
 
-        // Prefill from persisted state (URL state overrides client-side).
-        $context['value'] = page_filter_state::get_value(
-            $definition->pageid,
-            $definition->key,
-            (string)($context['value'] ?? '')
-        );
-        // Reflect the prefilled value into select option selection.
-        if (!empty($context['options'])) {
-            foreach ($context['options'] as &$option) {
-                $option['selected'] = ((string)$option['value'] === (string)$context['value']);
+        if ($islocked) {
+            // Show the option label where one matches the forced value.
+            $lockedvalue = $lockedvalues[$definition->key];
+            $display = $lockedvalue;
+            foreach ($context['options'] ?? [] as $option) {
+                if ((string)$option['value'] === $lockedvalue) {
+                    $display = (string)$option['label'];
+                    break;
+                }
             }
-            unset($option);
+            $context['value'] = $display;
+            $context['options'] = [];
+        } else {
+            // Prefill from persisted state (URL state overrides client-side).
+            $context['value'] = page_filter_state::get_value(
+                $definition->pageid,
+                $definition->key,
+                (string)($context['value'] ?? '')
+            );
+            // Reflect the prefilled value into select option selection.
+            if (!empty($context['options'])) {
+                foreach ($context['options'] as &$option) {
+                    $option['selected'] = ((string)$option['value'] === (string)$context['value']);
+                }
+                unset($option);
+            }
         }
 
         $context['pageid'] = $definition->pageid;
         $context['palettename'] = palette_manager::name();
-        $context['isselect'] = ($definition->type === 'select');
-        $context['isdate'] = ($definition->type === 'date');
-        $context['istext'] = ($definition->type === 'text');
-        $context['isnumber'] = ($definition->type === 'number');
+        $context['islocked'] = $islocked;
+        $context['isselect'] = !$islocked && ($definition->type === 'select');
+        $context['isdate'] = !$islocked && ($definition->type === 'date');
+        $context['istext'] = !$islocked && ($definition->type === 'text');
+        $context['isnumber'] = !$islocked && ($definition->type === 'number');
 
         return $OUTPUT->render_from_template('local_wb_dashboard/chartfilter', $context);
     }

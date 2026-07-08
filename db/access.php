@@ -28,6 +28,17 @@
 defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
+    // Exempts a user from locked page filters (lockedfilters setting). Users
+    // without it get every mapped filter key forced to their own profile field
+    // value on all dashboard data.
+    'local/wb_dashboard:ignorelockedfilters' => [
+        'captype'      => 'read',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes'   => [
+            'manager' => CAP_ALLOW,
+        ],
+    ],
+
     // Configure per-chart colour overrides via the chart settings gear. This is
     // authoring config shared by all viewers, so it is limited to managers.
     'local/wb_dashboard:configurecharts' => [

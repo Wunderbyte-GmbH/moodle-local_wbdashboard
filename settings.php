@@ -46,6 +46,17 @@ if ($hassiteconfig) {
         palette_manager::available()
     ));
 
+    // Lock filter keys to user profile fields: users without the
+    // ignorelockedfilters capability get these keys forced to their own
+    // profile field value on every chart/digits request.
+    $settings->add(new admin_setting_configtextarea(
+        'local_wb_dashboard/lockedfilters',
+        get_string('settings:lockedfilters', 'local_wb_dashboard'),
+        get_string('settings:lockedfilters_desc', 'local_wb_dashboard'),
+        '',
+        PARAM_RAW
+    ));
+
     $ADMIN->add('local_wb_dashboard', $settings);
 
     // Core does not auto-load settings for a custom subplugin type, so each

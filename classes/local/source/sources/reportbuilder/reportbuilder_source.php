@@ -45,7 +45,7 @@ use local_wb_dashboard\local\source\shaping\shaper;
  * @copyright  2026 Wunderbyte GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class reportbuilder_source implements shapable_source, option_provider_interface {
+class reportbuilder_source implements option_provider_interface, shapable_source {
     /** @var int Cap for options derived by scanning report rows. */
     private const MAX_DYNAMIC_OPTIONS = 500;
 
@@ -304,6 +304,12 @@ class reportbuilder_source implements shapable_source, option_provider_interface
         $value = $constraint->value;
 
         if (is_a($class, select::class, true)) {
+            // Core's select filter silently applies NO filter when the value is
+            // not a valid option. For a locked (server-forced) constraint that
+            // would fail open, so a mismatch must abort instead.
+            if ($constraint->locked && !$this->is_valid_select_option($filter, (string)$value)) {
+                throw new \moodle_exception('error:lockedfilterinvalidvalue', 'local_wb_dashboard', '', s($constraint->key));
+            }
             return [
                 "{$name}_operator" => select::EQUAL_TO,
                 "{$name}_value" => $value,
@@ -311,6 +317,7 @@ class reportbuilder_source implements shapable_source, option_provider_interface
         }
 
         if (is_a($class, text::class, true)) {
+            // Text comparisons are applied verbatim, no option check needed.
             $operator = $constraint->operator === filter_constraint::OP_EQUAL ? text::IS_EQUAL_TO : text::CONTAINS;
             return [
                 "{$name}_operator" => $operator,
@@ -346,5 +353,20 @@ class reportbuilder_source implements shapable_source, option_provider_interface
         }
 
         return [];
+    }
+
+    /**
+     * Whether the value is one of the select filter's declared options.
+     *
+     * @param \core_reportbuilder\local\report\filter $filter
+     * @param string $value
+     * @return bool
+     */
+    private function is_valid_select_option($filter, string $value): bool {
+        $options = (array)$filter->get_options();
+        if (count($options) !== count($options, COUNT_RECURSIVE)) {
+            $options = array_merge(...array_values($options));
+        }
+        return array_key_exists($value, $options);
     }
 }

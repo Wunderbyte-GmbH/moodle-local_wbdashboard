@@ -47,16 +47,21 @@ class filter_constraint {
     /** @var mixed The submitted, normalized value (scalar or [min, max] for between). */
     public $value;
 
+    /** @var bool Server-forced (locked filter): sources must fail closed rather than drop it. */
+    public bool $locked;
+
     /**
      * Constructor.
      *
      * @param string $key
      * @param string $operator
      * @param mixed $value
+     * @param bool $locked
      */
-    public function __construct(string $key, string $operator, $value) {
+    public function __construct(string $key, string $operator, $value, bool $locked = false) {
         $this->key = $key;
         $this->operator = $operator;
         $this->value = $value;
+        $this->locked = $locked;
     }
 }

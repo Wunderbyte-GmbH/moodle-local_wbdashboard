@@ -26,7 +26,8 @@
     * label - Visible label.
     * value - Current value.
     * pageid - Page identifier for shared filter state.
-    * isselect / isdate / istext / isnumber - Type flags.
+    * islocked - The value is server-forced for this user: render it statically.
+    * isselect / isdate / istext / isnumber - Type flags (all false when locked).
     * options - For select: list of {value, label, selected}.
     * palettename - Active palette name; added as a wb-palette-NAME scope class.
 
@@ -49,6 +50,9 @@
 <div class="local-dashboard-filter form-group wb-palette-{{palettename}}" data-region="chart-filter"
      data-filter-key="{{key}}" data-filter-type="{{type}}" data-pageid="{{pageid}}">
     <label for="{{id}}" class="local-dashboard-filter-label">{{label}}</label>
+    {{#islocked}}
+        <span id="{{id}}" class="form-control-plaintext local-dashboard-filter-locked">{{value}}</span>
+    {{/islocked}}
     {{#isselect}}
         <select id="{{id}}" class="custom-select" data-filter-control="1">
             <option value="">{{#str}}choosedots{{/str}}</option>
@@ -68,8 +72,10 @@
     {{/isnumber}}
 </div>
 
+{{^islocked}}
 {{#js}}
 require(['local_wb_dashboard/filterbus'], function(filterbus) {
     filterbus.registerControl({{#quote}}{{id}}{{/quote}});
 });
 {{/js}}
+{{/islocked}}

@@ -252,6 +252,7 @@ per-user cache, and fans out to every chart on the page that `consumes` the key.
 | `default` | text | — | Initial value. |
 | `options` | `value:Label,value:Label` | — | **`select` only.** The dropdown options. |
 | `operator` | `eq`, `gte`, `lte` | `eq` | **`number` only.** Comparison used when applying the value. |
+| `hidewhenlocked` | `1` | — | Render nothing (instead of a static value) for users whose value for this key is locked. |
 
 ### How each type applies
 
@@ -268,6 +269,30 @@ report filter:
 | `date` | on/after the chosen date | date filter, range from the chosen date |
 
 A filter whose `key` a report does not have is simply ignored by that chart.
+
+### Locked filters (per-user forced values)
+
+The **Locked filters** admin setting (`lockedfilters`) maps filter keys to user
+profile fields, one per line:
+
+```
+region=region
+```
+
+For every user **without** the `local/wb_dashboard:ignorelockedfilters`
+capability (managers have it by default), a mapped key is *locked*:
+
+- Every chart/digits request forces the key to that user's own profile field
+  value **server-side** — whatever the browser submits for the key is discarded.
+- The `[chartfilter]` control for the key renders as a static value (or nothing
+  with `hidewhenlocked=1`); other users keep the normal control.
+- A locked user with an **empty** profile field gets an error instead of data
+  (fail closed), as does a value that is not a valid option of a report's
+  select filter.
+
+The profile field value must exactly match the report filter's option values
+(case and spelling). Reports used on restricted pages must include the locked
+key among their active filters — a report without it returns *unfiltered* data.
 
 ```
 [chartfilter key=status  type=select label="Status" options="1:Open,2:Closed" pageid=demo]
