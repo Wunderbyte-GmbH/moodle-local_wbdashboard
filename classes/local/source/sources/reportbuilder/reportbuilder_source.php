@@ -24,6 +24,7 @@ use core_reportbuilder\manager;
 use core_reportbuilder\permission;
 use local_wb_dashboard\local\dto\chart_data;
 use local_wb_dashboard\local\dto\filter_constraint;
+use local_wb_dashboard\local\source\grouped_option_provider_interface;
 use local_wb_dashboard\local\source\option_provider_interface;
 use local_wb_dashboard\local\source\shapable_source;
 use local_wb_dashboard\local\source\shaping\shaper;
@@ -45,7 +46,7 @@ use local_wb_dashboard\local\source\shaping\shaper;
  * @copyright  2026 Wunderbyte GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class reportbuilder_source implements option_provider_interface, shapable_source {
+class reportbuilder_source implements grouped_option_provider_interface, option_provider_interface, shapable_source {
     /** @var int Cap for options derived by scanning report rows. */
     private const MAX_DYNAMIC_OPTIONS = 500;
 
@@ -189,6 +190,62 @@ class reportbuilder_source implements option_provider_interface, shapable_source
             }
         }
         return array_values($values);
+    }
+
+    #[\Override]
+    public function get_grouped_filter_options(
+        array $sourceparams,
+        string $groupfield,
+        string $valuefield,
+        string $scopevalue = ''
+    ): array {
+        $needle = $scopevalue === '' ? '' : \core_text::strtolower(trim($scopevalue));
+
+        // Collect distinct (group => value => label) pairs across every report,
+        // reading the same formatted cell values a text filter compares against.
+        $groups = [];
+        $count = 0;
+        foreach ($this->report_ids($sourceparams) as $reportid) {
+            $rows = (new reporthandler($reportid))->return_data();
+            if (empty($rows)) {
+                continue;
+            }
+            $first = (array)reset($rows);
+            $groupkey = reporthandler::resolve_field_name($reportid, $groupfield, $first);
+            $valuekey = reporthandler::resolve_field_name($reportid, $valuefield, $first);
+
+            foreach ($rows as $row) {
+                $row = (array)$row;
+                $group = trim(strip_tags((string)($row[$groupkey] ?? '')));
+                $value = trim(strip_tags((string)($row[$valuekey] ?? '')));
+                if ($group === '' || $value === '') {
+                    continue;
+                }
+                if ($needle !== '' && \core_text::strtolower($group) !== $needle) {
+                    continue;
+                }
+                if (isset($groups[$group][$value])) {
+                    continue;
+                }
+                $groups[$group][$value] = $value;
+                if (++$count >= self::MAX_DYNAMIC_OPTIONS) {
+                    break 2;
+                }
+            }
+        }
+
+        // Stable, collated order for both groups and their options.
+        \core_collator::ksort($groups);
+        $result = [];
+        foreach ($groups as $grouplabel => $values) {
+            \core_collator::asort($values);
+            $options = [];
+            foreach ($values as $value => $label) {
+                $options[] = ['value' => (string)$value, 'label' => (string)$label];
+            }
+            $result[] = ['group' => (string)$grouplabel, 'options' => $options];
+        }
+        return $result;
     }
 
     #[\Override]

@@ -22,14 +22,23 @@ use context_system;
  * Filter keys whose value is locked to a user profile field.
  *
  * The lockedfilters admin setting maps logical filter keys to user profile
- * field shortnames ("region=region", one per line). For every user without the
- * local/wb_dashboard:ignorelockedfilters capability, a mapped key is locked:
- * the pipeline discards whatever the client submitted for it and forces the
- * user's own profile field value instead, and the [chartfilter] shortcode
- * renders a static value instead of a control.
+ * field shortnames, one mapping per line ("region=region"). A mapping may be
+ * scoped to one or more roles with a "|role1,role2" suffix
+ * ("region=region|regionalmanager"): then only users assigned one of those
+ * roles (in the system context) get the key locked, so different roles can have
+ * different subsets of filters frozen on the same page. A mapping with no role
+ * suffix applies to everyone (the historical behaviour).
+ *
+ * For every affected user, a locked key is forced server-side: the pipeline
+ * discards whatever the client submitted for it and applies the user's own
+ * profile field value instead, and the [chartfilter] shortcode renders a static
+ * value instead of a control. The local/wb_dashboard:ignorelockedfilters
+ * capability exempts a user from all locks regardless of role.
  *
  * A locked key with an empty profile field value stays in the map with value
- * '': callers must fail closed (no data), never fall back to unfiltered.
+ * '': callers must fail closed (no data), never fall back to unfiltered. An
+ * unmatched role name (e.g. a role not created yet) simply means the lock
+ * applies to nobody — role shortnames must match existing roles to take effect.
  *
  * @package    local_wb_dashboard
  * @copyright  2026 Wunderbyte GmbH
@@ -37,9 +46,9 @@ use context_system;
  */
 class locked_filters {
     /**
-     * Parse the lockedfilters setting into filter key => profile field shortname.
+     * Parse the lockedfilters setting into filter key => {field, roles}.
      *
-     * @return array<string, string>
+     * @return array<string, array{field: string, roles: string[]}>
      */
     public static function mappings(): array {
         $raw = (string)get_config('local_wb_dashboard', 'lockedfilters');
@@ -48,11 +57,24 @@ class locked_filters {
             if (strpos($line, '=') === false) {
                 continue;
             }
-            [$key, $shortname] = array_map('trim', explode('=', $line, 2));
+            [$key, $rest] = array_map('trim', explode('=', $line, 2));
+
+            // Optional "|role1,role2" suffix scopes the lock to those roles.
+            $roles = [];
+            if (($pipe = strpos($rest, '|')) !== false) {
+                foreach (explode(',', substr($rest, $pipe + 1)) as $role) {
+                    $role = clean_param(trim($role), PARAM_ALPHANUMEXT);
+                    if ($role !== '') {
+                        $roles[$role] = $role;
+                    }
+                }
+                $rest = substr($rest, 0, $pipe);
+            }
+
             $key = clean_param($key, PARAM_ALPHANUMEXT);
-            $shortname = clean_param($shortname, PARAM_ALPHANUMEXT);
+            $shortname = clean_param(trim($rest), PARAM_ALPHANUMEXT);
             if ($key !== '' && $shortname !== '') {
-                $mappings[$key] = $shortname;
+                $mappings[$key] = ['field' => $shortname, 'roles' => array_values($roles)];
             }
         }
         return $mappings;
@@ -74,6 +96,7 @@ class locked_filters {
         if (empty($mappings)) {
             return [];
         }
+        // Master exemption: this capability ignores every lock, regardless of role.
         if (has_capability('local/wb_dashboard:ignorelockedfilters', context_system::instance(), $userid)) {
             return [];
         }
@@ -81,11 +104,35 @@ class locked_filters {
         require_once($CFG->dirroot . '/user/profile/lib.php');
         $record = profile_user_record($userid, false);
 
+        // The user's system-context role shortnames, resolved once and only when
+        // a role-scoped mapping actually needs them.
+        $userroles = null;
+
         $locked = [];
-        foreach ($mappings as $key => $shortname) {
-            $locked[$key] = trim((string)($record->{$shortname} ?? ''));
+        foreach ($mappings as $key => $mapping) {
+            if (!empty($mapping['roles'])) {
+                $userroles ??= self::user_role_shortnames($userid);
+                if (empty(array_intersect($mapping['roles'], $userroles))) {
+                    continue; // Lock is scoped to roles this user is not assigned.
+                }
+            }
+            $locked[$key] = trim((string)($record->{$mapping['field']} ?? ''));
         }
         return $locked;
+    }
+
+    /**
+     * The shortnames of the roles assigned to the user in the system context.
+     *
+     * @param int $userid
+     * @return string[]
+     */
+    private static function user_role_shortnames(int $userid): array {
+        $shortnames = [];
+        foreach (get_user_roles(context_system::instance(), $userid, false) as $role) {
+            $shortnames[$role->shortname] = $role->shortname;
+        }
+        return array_values($shortnames);
     }
 
     /**

@@ -246,11 +246,16 @@ per-user cache, and fans out to every chart on the page that `consumes` the key.
 | Flag | Values | Default | Description |
 |------|--------|---------|-------------|
 | `key` | alphanumeric | — (required) | The logical filter key. Charts reference it via `consumes=`, and the source maps it to its own filtering. |
-| `type` | `select`, `date`, `text`, `number` | `text` | The control type. |
+| `type` | `select`, `groupedselect`, `date`, `text`, `number`, `map` | `text` | The control type. |
 | `pageid` | alphanumeric | `default` | Must match the charts' `pageid`. |
 | `label` | text | the key | Visible label. |
 | `default` | text | — | Initial value. |
-| `options` | `value:Label,value:Label` | — | **`select` only.** The dropdown options. |
+| `options` | `value:Label,value:Label` | — | **`select` only.** Static dropdown options. |
+| `optionsfield` | field name | — | **`select`/`groupedselect`.** Populate options dynamically from this source field instead of a static list. |
+| `source` | source name | `reportbuilder` | **`select`/`groupedselect`.** Which data source supplies dynamic options. |
+| `groupfield` | field name | — | **`groupedselect` only.** The field whose value groups the options (rendered as optgroups). |
+| `groups` | `GroupA=v:Label;v:Label\|\|GroupB=v` | — | **`groupedselect` only.** Static fallback used when `optionsfield`/`groupfield` yield nothing. |
+| `dependson` | filter key | — | **`groupedselect` only.** When that key is *locked* for the viewer, options are scoped to the matching group only. |
 | `operator` | `eq`, `gte`, `lte` | `eq` | **`number` only.** Comparison used when applying the value. |
 | `hidewhenlocked` | `1` | — | Render nothing (instead of a static value) for users whose value for this key is locked. |
 
@@ -264,11 +269,36 @@ report filter:
 | Filter type | Constraint | Report Builder mapping |
 |-------------|-----------|------------------------|
 | `select` | equals | select filter, "is equal to" |
+| `groupedselect` | equals | select filter, "is equal to" (same as `select`; grouping is presentational) |
 | `text` | contains | text filter, "contains" |
 | `number` | eq / gte / lte (per `operator`) | number filter, matching operator |
 | `date` | on/after the chosen date | date filter, range from the chosen date |
 
 A filter whose `key` a report does not have is simply ignored by that chart.
+
+### Grouped select (`groupedselect`)
+
+A dropdown whose options are grouped under a second field, rendered as HTML
+optgroups. It emits a single value for its own `key` — exactly like `select` —
+so charts, URL state and the constraint pipeline treat it identically; the
+grouping is purely presentational.
+
+Options are read from the source: `optionsfield` gives the option values,
+`groupfield` gives the group each option falls under (both are distinct,
+formatted values of those fields in the data). A static `groups=…` string is the
+fallback when no source options are found.
+
+With `dependson=<key>`, if that key is **locked** for the viewer (see *Locked
+filters* below), the options are scoped to the single matching group — so a
+regional manager frozen to their region sees only that region's options
+(rendered flat, without an optgroup header), while an unscoped admin sees every
+group. This scoping is server-side; there is no client-side cascade.
+
+```
+# ASL options grouped by REGION. Managers locked to a region see only theirs.
+[chartfilter key=region type=select        label="Region" optionsfield=region source=reportbuilder report=42 pageid=ops]
+[chartfilter key=asl    type=groupedselect label="ASL"    optionsfield=asl groupfield=region dependson=region source=reportbuilder report=42 pageid=ops]
+```
 
 ### Locked filters (per-user forced values)
 
@@ -279,8 +309,25 @@ profile fields, one per line:
 region=region
 ```
 
-For every user **without** the `local/wb_dashboard:ignorelockedfilters`
-capability (managers have it by default), a mapped key is *locked*:
+A mapping may be **scoped to roles** with a `|role1,role2` suffix — then only
+users assigned one of those roles (in the system context) get that key locked,
+so different roles can have different filters frozen on the same page:
+
+```
+region=region|regionalmanager
+asl=asl|aslmanager
+```
+
+Here a regional manager has `region` frozen but can still choose `asl` (scoped
+to their region via a `dependson=region` grouped select), an ASL manager has
+`asl` frozen, and an admin — holding `ignorelockedfilters` — has both free. A
+line with no `|roles` suffix applies to everyone. Role names must match existing
+role shortnames; an unmatched name locks nobody.
+
+For every affected user (those **without** the
+`local/wb_dashboard:ignorelockedfilters` capability, which managers have by
+default, and — for role-scoped lines — assigned a listed role), a mapped key is
+*locked*:
 
 - Every chart/digits request forces the key to that user's own profile field
   value **server-side** — whatever the browser submits for the key is discarded.

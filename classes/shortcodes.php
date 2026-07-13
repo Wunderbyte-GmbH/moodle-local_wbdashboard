@@ -146,6 +146,16 @@ class shortcodes {
                 }
                 unset($option);
             }
+            // Same, for a grouped select's optgroup options.
+            if (!empty($context['groups'])) {
+                foreach ($context['groups'] as &$group) {
+                    foreach ($group['options'] as &$option) {
+                        $option['selected'] = ((string)$option['value'] === (string)$context['value']);
+                    }
+                    unset($option);
+                }
+                unset($group);
+            }
         }
         // Reflect the prefilled value into the active map region and expose its
         // display name for the readout.
@@ -163,6 +173,7 @@ class shortcodes {
         $context['palettename'] = palette_manager::name();
         $context['islocked'] = $islocked;
         $context['isselect'] = !$islocked && ($definition->type === 'select');
+        $context['isgroupedselect'] = !$islocked && ($definition->type === 'groupedselect');
         $context['isdate'] = !$islocked && ($definition->type === 'date');
         $context['istext'] = !$islocked && ($definition->type === 'text');
         $context['isnumber'] = !$islocked && ($definition->type === 'number');

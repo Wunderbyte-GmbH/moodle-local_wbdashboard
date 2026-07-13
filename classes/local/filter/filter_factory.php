@@ -33,7 +33,7 @@ class filter_factory {
      * @return bool
      */
     public static function exists(string $type): bool {
-        return in_array($type, ['select', 'date', 'text', 'number', 'map'], true);
+        return in_array($type, ['select', 'groupedselect', 'date', 'text', 'number', 'map'], true);
     }
 
     /**
@@ -48,6 +48,7 @@ class filter_factory {
     public static function create(string $type, string $key, array $config = []): filter_interface {
         return match ($type) {
             'select' => new select_filter($key, $config),
+            'groupedselect' => new grouped_select_filter($key, $config),
             'date'   => new date_filter($key, $config),
             'text'   => new text_filter($key, $config),
             'number' => new number_filter($key, $config),

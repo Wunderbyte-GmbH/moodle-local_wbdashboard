@@ -22,13 +22,14 @@
     Context variables required for this template:
     * id - Unique DOM id for the control.
     * key - Logical filter key.
-    * type - Filter type (select|date|text|number).
+    * type - Filter type (select|groupedselect|date|text|number|map).
     * label - Visible label.
     * value - Current value.
     * pageid - Page identifier for shared filter state.
     * islocked - The value is server-forced for this user: render it statically.
-    * isselect / isdate / istext / isnumber / ismap - Type flags (all false when locked).
+    * isselect / isgroupedselect / isdate / istext / isnumber / ismap - Type flags (all false when locked).
     * options - For select: list of {value, label, selected}.
+    * groups - For groupedselect: list of {label, options: [{value, label, selected}]} (blank label renders flat).
     * viewbox - For map: the SVG viewBox.
     * regions - For map: list of {id, value, name, d, selected}.
     * valuename - For map: display name of the selected region ('' when none).
@@ -64,6 +65,18 @@
             {{/options}}
         </select>
     {{/isselect}}
+    {{#isgroupedselect}}
+        <select id="{{id}}" class="custom-select" data-filter-control="1">
+            <option value="">{{#str}}choosedots{{/str}}</option>
+            {{#groups}}
+                {{#label}}<optgroup label="{{label}}">{{/label}}
+                {{#options}}
+                    <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+                {{/options}}
+                {{#label}}</optgroup>{{/label}}
+            {{/groups}}
+        </select>
+    {{/isgroupedselect}}
     {{#isdate}}
         <input type="date" id="{{id}}" class="form-control" value="{{value}}" data-filter-control="1">
     {{/isdate}}

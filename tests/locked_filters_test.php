@@ -77,9 +77,71 @@ final class locked_filters_test extends \advanced_testcase {
         set_config('lockedfilters', "region=region\n\njunkline\n dept = department \n?!=x\nnokey=", 'local_wb_dashboard');
 
         $this->assertSame([
-            'region' => 'region',
-            'dept' => 'department',
+            'region' => ['field' => 'region', 'roles' => []],
+            'dept' => ['field' => 'department', 'roles' => []],
         ], locked_filters::mappings());
+    }
+
+    public function test_mappings_parses_role_scope_suffix(): void {
+        $this->resetAfterTest();
+
+        set_config(
+            'lockedfilters',
+            "region=region|regionalmanager\nasl=asl | aslmanager , supervisor \ndept=department|",
+            'local_wb_dashboard'
+        );
+
+        $this->assertSame([
+            'region' => ['field' => 'region', 'roles' => ['regionalmanager']],
+            'asl' => ['field' => 'asl', 'roles' => ['aslmanager', 'supervisor']],
+            // A trailing pipe with no roles behaves like no suffix.
+            'dept' => ['field' => 'department', 'roles' => []],
+        ], locked_filters::mappings());
+    }
+
+    public function test_role_scoped_lock_applies_only_to_assigned_roles(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $this->create_region_field();
+        // Region is locked only for the "regionalmanager" role.
+        set_config('lockedfilters', 'region=region|regionalmanager', 'local_wb_dashboard');
+
+        $roleid = $this->getDataGenerator()->create_role(['shortname' => 'regionalmanager', 'archetype' => '']);
+
+        // A regional manager gets region locked to their own profile value.
+        $manager = $this->getDataGenerator()->create_user(['profile_field_region' => 'south']);
+        role_assign($roleid, $manager->id, \context_system::instance());
+        $this->assertSame(['region' => 'south'], locked_filters::for_user((int)$manager->id));
+
+        // A user without the role is not locked at all.
+        $other = $this->getDataGenerator()->create_user(['profile_field_region' => 'north']);
+        $this->assertSame([], locked_filters::for_user((int)$other->id));
+
+        // A role name that does not exist locks nobody (fail: applies to no one).
+        set_config('lockedfilters', 'region=region|ghostrole', 'local_wb_dashboard');
+        $this->assertSame([], locked_filters::for_user((int)$manager->id));
+    }
+
+    public function test_mixed_role_scopes_lock_independent_keys_per_role(): void {
+        $this->resetAfterTest();
+        $this->create_region_field();
+        $this->getDataGenerator()->create_custom_profile_field([
+            'datatype' => 'text', 'shortname' => 'asl', 'name' => 'ASL',
+        ]);
+        set_config(
+            'lockedfilters',
+            "region=region|regionalmanager\nasl=asl|aslmanager",
+            'local_wb_dashboard'
+        );
+        $regionrole = $this->getDataGenerator()->create_role(['shortname' => 'regionalmanager', 'archetype' => '']);
+        $this->getDataGenerator()->create_role(['shortname' => 'aslmanager', 'archetype' => '']);
+
+        // Regional manager: region locked, ASL free (can still choose it).
+        $manager = $this->getDataGenerator()->create_user([
+            'profile_field_region' => 'south', 'profile_field_asl' => '3',
+        ]);
+        role_assign($regionrole, $manager->id, \context_system::instance());
+        $this->assertSame(['region' => 'south'], locked_filters::for_user((int)$manager->id));
     }
 
     public function test_for_user_returns_profile_value_without_capability(): void {
@@ -91,7 +153,7 @@ final class locked_filters_test extends \advanced_testcase {
         $this->assertSame(['region' => 'south'], locked_filters::for_user((int)$user->id));
 
         // An empty profile field stays in the map with '' (callers fail closed).
-        $unset = $this->getDataGenerator()->create_user();
+        $unset = $this->getDataGenerator()->create_user(['profile_field_region' => '']);
         $this->assertSame(['region' => ''], locked_filters::for_user((int)$unset->id));
     }
 
