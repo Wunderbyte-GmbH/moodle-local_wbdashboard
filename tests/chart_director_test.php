@@ -108,6 +108,8 @@ final class chart_director_test extends \advanced_testcase {
         // One dataset, per-point colours from the supplied palette.
         $this->assertCount(1, $out['data']['datasets']);
         $this->assertSame(['#111', '#222'], $out['data']['datasets'][0]['backgroundColor']);
+        // Segment borders always use the palette's primary (first) colour.
+        $this->assertSame('#111', $out['data']['datasets'][0]['borderColor']);
     }
 
     public function test_horizontalbar_sets_index_axis(): void {

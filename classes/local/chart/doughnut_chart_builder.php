@@ -58,6 +58,7 @@ class doughnut_chart_builder extends chart_builder {
             'label' => $series->label,
             'data' => $series->data,
             'backgroundColor' => $this->resolve_point_colors($series, count($series->data)),
+            'borderColor' => $this->palette[0],
         ];
     }
 }
