@@ -24,6 +24,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['activemonth:firstlogin'] = 'First login in month';
+$string['activemonth:lastlogin'] = 'Last login in month';
+$string['activemonth:logins'] = 'Logins in month';
+$string['activemonth:month'] = 'Month';
 $string['cachedef_filteroptions'] = 'Dynamic filter dropdown options';
 $string['cachedef_pagefilterstate'] = 'Per-user page filter state';
 $string['chart'] = 'Chart';
@@ -33,6 +37,8 @@ $string['chartsettings:intro'] = 'Choose which palette colour each slot uses. Sl
 $string['chartsettings:invalidcolour'] = 'Choose a colour from the palette.';
 $string['chartsettings:paletteoption'] = 'Colour {$a->index} ({$a->hex})';
 $string['chartsettings:title'] = 'Chart colours';
+$string['datasource:activeusers'] = 'Active users (unique per month)';
+$string['entity:activemonth'] = 'Active month';
 $string['error:invalidreportid'] = 'Invalid or missing report id.';
 $string['error:lockedfilterinvalidvalue'] = 'Your assigned value for the filter "{$a}" is not a valid option of the report filter. Please contact your administrator.';
 $string['error:lockedfilternovalue'] = 'No value is assigned to you for the filter "{$a}". Please contact your administrator.';
