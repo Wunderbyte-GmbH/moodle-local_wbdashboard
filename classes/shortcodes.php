@@ -58,7 +58,10 @@ class shortcodes {
             return get_string('error:unknowncharttype', 'local_wb_dashboard', s($definition->type));
         }
 
-        $envcontext = $env->context;
+        // $env->context can be null when the shortcode is rendered outside a
+        // context-bound page (e.g. a system-level content block); fall back to
+        // the system context so the capability check still has somewhere to run.
+        $envcontext = $env->context ?? \context_system::instance();
         $chartid = $definition->create_chartid((int)$envcontext->id);
 
         $wsargs = $definition->to_wsargs();
