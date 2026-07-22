@@ -50,6 +50,12 @@ lives in the URL (canonical) with a per-user MUC cache (`page_filter_state`) as 
 persistence fallback; the `filterbus` JS singleton owns it and fans changes out to
 every subscribed chart.
 
+Constraint contract for sources: `OP_BETWEEN` always carries a two-element
+`[min, max]` value where `0` means "unbounded on that side" (the `daterange`
+control emits `[fromtimestamp, totimestamp]` this way). A source must apply
+open-ended ranges accordingly and silently ignore any constraint whose operator
+it cannot map — never error on an unknown one.
+
 ## Component / data flow — first render
 
 ```mermaid

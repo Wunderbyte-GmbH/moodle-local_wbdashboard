@@ -33,13 +33,13 @@ class filter_factory {
      * @return bool
      */
     public static function exists(string $type): bool {
-        return in_array($type, ['select', 'groupedselect', 'date', 'text', 'number', 'map'], true);
+        return in_array($type, ['select', 'groupedselect', 'date', 'daterange', 'text', 'number', 'map'], true);
     }
 
     /**
      * Create a filter of the given type.
      *
-     * @param string $type select|date|text|number
+     * @param string $type select|groupedselect|date|daterange|text|number|map
      * @param string $key Logical filter key.
      * @param array $config
      * @return filter_interface
@@ -50,6 +50,7 @@ class filter_factory {
             'select' => new select_filter($key, $config),
             'groupedselect' => new grouped_select_filter($key, $config),
             'date'   => new date_filter($key, $config),
+            'daterange' => new daterange_filter($key, $config),
             'text'   => new text_filter($key, $config),
             'number' => new number_filter($key, $config),
             'map'    => new map_filter($key, $config),

@@ -29,6 +29,7 @@ use local_wb_dashboard\local\filter\filter_factory;
  * @covers     \local_wb_dashboard\local\filter\filter_factory
  * @covers     \local_wb_dashboard\local\filter\select_filter
  * @covers     \local_wb_dashboard\local\filter\date_filter
+ * @covers     \local_wb_dashboard\local\filter\daterange_filter
  * @covers     \local_wb_dashboard\local\filter\number_filter
  * @covers     \local_wb_dashboard\local\filter\text_filter
  */
@@ -64,6 +65,15 @@ final class filter_factory_test extends \advanced_testcase {
         $constraint = $filter->to_constraint($value);
         $this->assertSame(filter_constraint::OP_GREATER_EQUAL, $constraint->operator);
         $this->assertSame($value, $constraint->value);
+    }
+
+    public function test_daterange_produces_between_constraint(): void {
+        $filter = filter_factory::create('daterange', 'period', []);
+        $this->assertSame('daterange', $filter->get_type());
+        $constraint = $filter->to_constraint($filter->normalize_value('2026-01-01|2026-06-30'));
+        $this->assertSame(filter_constraint::OP_BETWEEN, $constraint->operator);
+        $this->assertIsArray($constraint->value);
+        $this->assertCount(2, $constraint->value);
     }
 
     public function test_unknown_type_throws(): void {

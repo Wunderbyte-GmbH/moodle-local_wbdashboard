@@ -246,10 +246,10 @@ per-user cache, and fans out to every chart on the page that `consumes` the key.
 | Flag | Values | Default | Description |
 |------|--------|---------|-------------|
 | `key` | alphanumeric | — (required) | The logical filter key. Charts reference it via `consumes=`, and the source maps it to its own filtering. |
-| `type` | `select`, `groupedselect`, `date`, `text`, `number`, `map` | `text` | The control type. |
+| `type` | `select`, `groupedselect`, `date`, `daterange`, `text`, `number`, `map` | `text` | The control type. |
 | `pageid` | alphanumeric | `default` | Must match the charts' `pageid`. |
 | `label` | text | the key | Visible label. |
-| `default` | text | — | Initial value. |
+| `default` | text | — | Initial value. For `daterange`: `"YYYY-MM-DD\|YYYY-MM-DD"`, either side may be empty. |
 | `options` | `value:Label,value:Label` | — | **`select` only.** Static dropdown options. |
 | `optionsfield` | field name | — | **`select`/`groupedselect`.** Populate options dynamically from this source field instead of a static list. |
 | `source` | source name | `reportbuilder` | **`select`/`groupedselect`.** Which data source supplies dynamic options. |
@@ -273,8 +273,21 @@ report filter:
 | `text` | contains | text filter, "contains" |
 | `number` | eq / gte / lte (per `operator`) | number filter, matching operator |
 | `date` | on/after the chosen date | date filter, range from the chosen date |
+| `daterange` | between the two chosen dates | date filter, custom range (from 00:00:00 to 23:59:59; either side may be left empty for an open-ended range) |
 
 A filter whose `key` a report does not have is simply ignored by that chart.
+
+### Date range (`daterange`)
+
+Two date inputs (from/to) that publish a single `"from|to"` value under one
+`key`. Either side may be left empty for an open-ended range; the to-day is
+included in full (up to 23:59:59). Locking a `daterange` key via *Locked
+filters* is not supported — locks force a single scalar value.
+
+```
+[chartfilter key=period type=daterange label="Period" pageid=demo]
+[chartfilter key=period type=daterange label="Period" default="2026-01-01|2026-06-30" pageid=demo]
+```
 
 ### Grouped select (`groupedselect`)
 

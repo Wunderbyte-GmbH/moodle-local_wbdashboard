@@ -22,6 +22,7 @@ use local_wb_dashboard\local\definition\chart_definition;
 use local_wb_dashboard\local\definition\digits_definition;
 use local_wb_dashboard\local\definition\filter_definition;
 use local_wb_dashboard\local\digits\digits_reducer;
+use local_wb_dashboard\local\filter\daterange_filter;
 use local_wb_dashboard\local\filter\filter_factory;
 use local_wb_dashboard\local\filter\locked_filters;
 use local_wb_dashboard\local\filter\page_filter_state;
@@ -169,12 +170,20 @@ class shortcodes {
             unset($region);
         }
 
+        // Split a (possibly cache-prefilled) "from|to" range value for the two
+        // date inputs of the daterange control.
+        if ($definition->type === 'daterange' && !$islocked) {
+            [$context['valuefrom'], $context['valueto']] =
+                daterange_filter::split_raw((string)$context['value']);
+        }
+
         $context['pageid'] = $definition->pageid;
         $context['palettename'] = palette_manager::name();
         $context['islocked'] = $islocked;
         $context['isselect'] = !$islocked && ($definition->type === 'select');
         $context['isgroupedselect'] = !$islocked && ($definition->type === 'groupedselect');
         $context['isdate'] = !$islocked && ($definition->type === 'date');
+        $context['isdaterange'] = !$islocked && ($definition->type === 'daterange');
         $context['istext'] = !$islocked && ($definition->type === 'text');
         $context['isnumber'] = !$islocked && ($definition->type === 'number');
         $context['ismap'] = !$islocked && ($definition->type === 'map');
